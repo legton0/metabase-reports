@@ -1,0 +1,7 @@
+{
+    "print_cards": [3, 2],
+    "create_pdf_report": [
+        {"collection": 2, "cards": [5]},
+        {"collection": 3}
+    ]
+}
