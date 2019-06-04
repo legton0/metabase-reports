@@ -73,7 +73,6 @@ class Metabase(MetabaseAPI):
 
     card_ids = []
     for item in ids:
-      print(item)
       if (isinstance(item, dict)):
         collection_id = item['collection']
         try:
@@ -86,7 +85,7 @@ class Metabase(MetabaseAPI):
       self.print_pdf_report(collection_id, card_ids)
 
     self.report.add_html("</body>\n</html>")
-    self.report.print_to_pdf_file(filename="metabase.pdf")
+    self.report.print_to_pdf_file(filename="metabase.pdf", path="./pdfs/")
     print("")
 
   def print_pdf_report(self, collection_id, card_ids=[]):
@@ -96,6 +95,32 @@ class Metabase(MetabaseAPI):
       if (not (card_ids) or (item['id'] in card_ids)):
         card = metabase.get_card(item['id'])
         self.report.add_csv_table(card, table_name=item['name'], breakline=True)
+
+  def create_csv_files(self, ids):
+    print("")
+    self.report = PDFReport()
+
+    card_ids = []
+    for item in ids:
+      if (isinstance(item, dict)):
+        collection_id = item['collection']
+        try:
+          card_ids = item['cards']
+        except:
+          card_ids = []
+      else:
+        collection_id = item
+        card_ids = []
+      self.print_csv_files(collection_id, card_ids)
+
+  def print_csv_files(self, collection_id, card_ids=[]):
+    collection = self.get_cards(collection_id, print_info=False)
+
+    for item in collection:
+      if (not (card_ids) or (item['id'] in card_ids)):
+        metabase_card = metabase.get_card(item['id'])
+        card = self.report.read_csv_file(metabase_card)
+        self.report.print_csv_file(card, table_name=item['name'], path="./csvs/")
 
   def no_method(self, ids):
     print("No option was specified.")
@@ -134,6 +159,10 @@ class Parser(argparse.ArgumentParser):
                             '--create_pdf_report', dest="args", 
                             action=ClassAction, nargs="*",
                             help='print specified collection(s) or cards to a pdf file')
+    self.parser_group.add_argument(
+                            '--create_csv_files', dest="args", 
+                            action=ClassAction, nargs="*",
+                            help='print specified collection(s) or cards to csv files')
     self.add_argument('-A', '--api_url', action='store', dest='api_url',
                           help='define api url')
 
