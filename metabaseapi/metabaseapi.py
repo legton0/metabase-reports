@@ -16,7 +16,7 @@ class MetabaseAPI():
     print("API: " + self.api_url)
     self.json_path = json_path
     if (self.json_path == None):
-      self.json_path = sys.path[0] + "/"
+      self.json_path = sys.path[0] + os.path.sep
     self.authenticate()
 
   def authenticate(self):

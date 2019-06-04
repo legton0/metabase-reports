@@ -8,7 +8,7 @@ from pdfreport.pdfreport import PDFReport
 class Metabase(MetabaseAPI):
 
   def __init__(self):
-    self.path = sys.path[0] + "/"
+    self.path = sys.path[0] + os.path.sep
     self.json_path = None
     self.chosen_method = getattr(self, "no_method")
     self.method_arguments = []
@@ -93,7 +93,9 @@ class Metabase(MetabaseAPI):
       self.print_pdf_report(collection_id, card_ids)
 
     self.report.add_html("</body>\n</html>")
-    self.report.print_to_pdf_file(filename="metabase.pdf", path="./pdfs/")
+    if not(os.path.exists(os.getcwd()+os.path.sep+"pdfs")):
+      os.mkdir("pdfs")
+    self.report.print_to_pdf_file(filename="metabase.pdf", path="pdfs"+os.path.sep)
     print("")
 
   def print_pdf_report(self, collection_id, card_ids=[]):
@@ -123,12 +125,13 @@ class Metabase(MetabaseAPI):
 
   def print_csv_files(self, collection_id, card_ids=[]):
     collection = self.get_cards(collection_id, print_info=False)
-
+    if not(os.path.exists(os.getcwd()+os.path.sep+"csvs")):
+      os.mkdir("csvs")
     for item in collection:
       if (not (card_ids) or (item['id'] in card_ids)):
         metabase_card = metabase.get_card(item['id'])
         card = self.report.read_csv_file(metabase_card)
-        self.report.print_csv_file(card, table_name=item['name'], path="./csvs/")
+        self.report.print_csv_file(card, table_name=item['name'], path="csvs"+os.path.sep)
 
   def no_method(self, ids):
     print("No option was specified.")
