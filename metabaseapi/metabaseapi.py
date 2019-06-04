@@ -2,17 +2,21 @@ import requests
 from datetime import datetime, date, timedelta
 import json
 import os
+import sys
 
 class MetabaseAPI():
   '''
   Handle metabase api methods
   '''
-  def __init__(self, api_url):
+  def __init__(self, api_url, json_path=None):
     self.headers = {'Content-Type': 'application/json'}
     if (not api_url.endswith('/')):
       api_url += "/"
     self.api_url = api_url
     print("API: " + self.api_url)
+    self.json_path = json_path
+    if (self.json_path == None):
+      self.json_path = sys.path[0] + "/"
     self.authenticate()
 
   def authenticate(self):
@@ -38,7 +42,7 @@ class MetabaseAPI():
   def login(self):
     print("Signing in...")
     try:
-      with open("login_info.json", "r") as read_file:
+      with open(self.json_path + "login_info.json", "r") as read_file:
         payload = json.load(read_file)
       username = payload['username']
       password = payload['password']
@@ -58,7 +62,7 @@ class MetabaseAPI():
     exists = os.path.isfile('credentials.json')
     if exists:
       try:
-        with open("credentials.json", "r") as read_file:
+        with open(self.json_path + "credentials.json", "r") as read_file:
           credentials = json.load(read_file)
         expire_date = datetime.strptime(credentials['expire_date'], '%Y-%m-%d').date()
         expired = date.today() >= expire_date
@@ -82,7 +86,7 @@ class MetabaseAPI():
       expire_date = date.today() + timedelta(days=13)
       credentials = self.login()
       credentials['expire_date'] = expire_date.strftime('%Y-%m-%d')
-      with open("credentials.json", "w") as write_file:
+      with open(self.json_path + "credentials.json", "w") as write_file:
         json.dump(credentials, write_file, indent=4)
       credentials_id = credentials['id']
       print("New credentials expire in  %s" % expire_date)

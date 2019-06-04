@@ -1,17 +1,20 @@
 import argparse
 import json
 import ast
+import sys
 from metabaseapi.metabaseapi import MetabaseAPI
 from pdfreport.pdfreport import PDFReport
 
 class Metabase(MetabaseAPI):
 
   def __init__(self):
+    self.path = sys.path[0] + "/"
+    self.json_path = None
     self.chosen_method = getattr(self, "no_method")
     self.method_arguments = []
     self.api_url = None
     self.init_config()
-    MetabaseAPI.__init__(self, self.api_url)
+    MetabaseAPI.__init__(self, self.api_url, json_path=self.json_path)
     if hasattr(self.cli_arguments, 'method'):
       self.chosen_method = getattr(self, self.cli_arguments.method)
       self.method_arguments = self.cli_arguments.args
@@ -23,8 +26,13 @@ class Metabase(MetabaseAPI):
     self.cli_arguments = self.parser.parse_args()
     self.config_json = None
     self.args_json = None
+
+    self.json_path = self.cli_arguments.json_path
+    if (self.json_path == None):
+      self.json_path = self.path
+
     try:
-      with open("config.json", "r") as read_file:
+      with open(self.json_path + "config.json", "r") as read_file:
         self.config_json = json.load(read_file)
     except FileNotFoundError as e:
       print("Warning:")
@@ -41,7 +49,7 @@ class Metabase(MetabaseAPI):
         print('')
         raise e
     try:
-      with open("arguments.json", "r") as read_file:
+      with open(self.json_path + "arguments.json", "r") as read_file:
         self.args_json = json.load(read_file)
     except FileNotFoundError as e:
       print("Warning:")
@@ -165,6 +173,8 @@ class Parser(argparse.ArgumentParser):
                             help='print specified collection(s) or cards to csv files')
     self.add_argument('-A', '--api_url', action='store', dest='api_url',
                           help='define api url')
+    self.add_argument('-J', '--json_path', action='store', dest='json_path',
+                          help='define the path of the json configuration files')
 
 if __name__ == "__main__":
   metabase = Metabase()
