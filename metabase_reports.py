@@ -2,6 +2,7 @@ import argparse
 import json
 import ast
 import sys
+import os
 from metabaseapi.metabaseapi import MetabaseAPI
 from pdfreport.pdfreport import PDFReport
 
@@ -131,7 +132,7 @@ class Metabase(MetabaseAPI):
       if (not (card_ids) or (item['id'] in card_ids)):
         metabase_card = metabase.get_card(item['id'])
         card = self.report.read_csv_file(metabase_card)
-        self.report.print_csv_file(card, table_name=item['name'], path="csvs"+os.path.sep)
+        self.report.print_csv_file(card, table_name=item['name'] + ".csv", path="csvs"+os.path.sep)
 
   def no_method(self, ids):
     print("No option was specified.")
