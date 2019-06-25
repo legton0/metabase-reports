@@ -8,6 +8,7 @@
     	"csv_name": "Número de usuários criados por mês.csv",
 		"csv_path": "/home/legton/pmec/metabase-reports/csvs/",
 		"rotation": 60,
+		"label_rotation": 60,
 		"parse_date_columns": "created_at"
     },
     "Número de recursos educacionais por tipo": {

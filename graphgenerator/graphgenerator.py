@@ -189,6 +189,7 @@ class GraphsGenerator():
         GraphGeneratorParser.fix_date(graph_csv, parse_date_columns, date_format=parsed_date_format)
       color = GraphGeneratorParser.get_optional_value(graph_info, "color", default_value="#A9C920")
       rotation = GraphGeneratorParser.get_optional_value(graph_info, "rotation", default_value=0)
+      label_rotation = GraphGeneratorParser.get_optional_value(graph_info, "label_rotation", default_value=0)
       description = GraphGeneratorParser.get_optional_value(graph_info, "description", default_value="")
       g_filter = GraphGeneratorParser.get_optional_value(graph_info, "filter", default_value=None)
       if (g_filter != None):
@@ -198,12 +199,12 @@ class GraphsGenerator():
         x, x_data, label_x = GraphGeneratorParser.get_x_data(graph_csv, graph_info)
         y, y_data, label_y = GraphGeneratorParser.get_y_data(graph_csv, graph_info)
       path = "graphs" + os.path.sep + graph_name
-      GraphGenerator.generate_graph(g_type, x_data, y_data, label_x, label_y, path, title=graph_name, subtitle=description, rotation=rotation, color=color)
+      GraphGenerator.generate_graph(g_type, x_data, y_data, label_x, label_y, path, title=graph_name, subtitle=description, rotation=rotation, label_rotation=label_rotation, color=color)
 
 class GraphGenerator(object):
 
   @staticmethod
-  def generate_graph(type, x_data, y_data, x_label, y_label, path, title="", subtitle="", rotation=0, color=None):
+  def generate_graph(type, x_data, y_data, x_label, y_label, path, title="", subtitle="", rotation=0, label_rotation=0, color=None):
 
     fig, ax = plt.subplots()
 
@@ -216,17 +217,17 @@ class GraphGenerator(object):
       plt.xlabel(x_label)
       plt.ylabel(y_label)
 
-      GraphGenerator.display_label_bar(ax, bars)
+      GraphGenerator.display_label_bar(ax, bars, rotation=label_rotation)
     elif (type == 'horizontal_bar'):
       bars = plt.barh(y_data, x_data, align="center", color=color)
       plt.xticks(rotation=rotation)
       plt.gcf().subplots_adjust(left=0.3, right=0.7)
-      plt.gcf().set_size_inches(30, plt.gcf().get_size_inches()[1])
+      plt.gcf().set_size_inches(15, plt.gcf().get_size_inches()[1])
 
       plt.xlabel(x_label)
       plt.ylabel(y_label)
 
-      GraphGenerator.display_label_barh(ax, bars)
+      GraphGenerator.display_label_barh(ax, bars, rotation=label_rotation)
     elif (type == 'pie'):
       plt.pie(y_data, labels=x_data, autopct='%1.1f%%', shadow=True, startangle=90)
       plt.axis('equal')
@@ -240,15 +241,18 @@ class GraphGenerator(object):
       plt.legend()
       plt.xticks(rotation=rotation)
     elif (type == 'table'):
+      fig.set_figheight(2, forward=False)
       columns = x_data
       cell_text = [[y for y in y_data]]
       the_table = plt.table(cellText=cell_text, colLabels=columns, loc='center')
-
       the_table.scale(2, 2)
 
+      ax.xaxis.set_visible(False) 
+      ax.yaxis.set_visible(False)
       ax.spines['bottom'].set_visible(False)
       ax.spines['left'].set_visible(False)
       plt.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+      print(fig.get_figheight())
 
     if (title != "" or subtitle != ""):
       plt.suptitle(title, y=1.1, fontsize=15)
@@ -262,24 +266,24 @@ class GraphGenerator(object):
     plt.clf()
 
   @staticmethod
-  def display_label_bar(ax, bars):
+  def display_label_bar(ax, bars, rotation=0):
     max_y_value = ax.get_ylim()[1]
     distance = max_y_value * 0.01
     for bar in bars:
       text = bar.get_height()
       text_x = bar.get_x() + bar.get_width() / 2
       text_y = bar.get_height() + distance
-      ax.text(text_x, text_y, text, ha='center', va='bottom')
+      ax.text(text_x, text_y, text, ha='center', va='bottom', rotation=rotation)
 
   @staticmethod
-  def display_label_barh(ax, bars):
+  def display_label_barh(ax, bars, rotation=0):
     max_x_value = ax.get_xlim()[1]
     distance = max_x_value * 0.0025
     for bar in bars:
       text = bar.get_width()
       text_y = bar.get_y() + bar.get_height() / 2
       text_x = bar.get_width() + distance
-      ax.text(text_x, text_y, text, va='center')
+      ax.text(text_x, text_y, text, va='center', rotation=rotation)
 
 if __name__ == "__main__":
   generator = GraphsGenerator("/home/legton/pmec/metabase-reports/")
