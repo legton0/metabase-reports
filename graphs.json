@@ -1,0 +1,62 @@
+{
+    "Número de usuários criados por mês": {
+    	"type": "bar",
+    	"x": "created_at",
+    	"y": "count",
+		"label_x": "Mes",
+		"label_y": "Numero de Usuarios",
+    	"csv_name": "Número de usuários criados por mês.csv",
+		"csv_path": "/home/legton/pmec/metabase-reports/csvs/",
+		"rotation": 60,
+		"parse_date_columns": "created_at"
+    },
+    "Número de recursos educacionais por tipo": {
+    	"type": "pie",
+    	"x": "name",
+    	"y": "count",
+    	"csv_name": "Número de recursos educacionais por ttipo.csv",
+		"csv_path": "/home/legton/pmec/metabase-reports/csvs/"
+    },
+    "Número de recursos educacionais por ttipo": {
+    	"type": "table",
+    	"x": "name",
+    	"y": "count",
+    	"csv_name": "Número de recursos educacionais por ttipo.csv",
+		"csv_path": "/home/legton/pmec/metabase-reports/csvs/"
+    },
+    "Visitas únicas e não únicas na plataforma": {
+    	"type": "line",
+    	"x": "visit_first_action_time",
+    	"y": "count",
+		"label_y": "Visitas",
+    	"sort_asc":"visit_first_action_time",
+    	"filter": "visitor_returning",
+    	"label_filter": "não únicas,únicas",
+    	"csv_name": "Visitas únicas e não únicas na plataforma.csv",
+		"csv_path": "/home/legton/pmec/metabase-reports/csvs/",
+		"rotation": 60,
+		"parse_date_columns": "visit_first_action_time",
+		"parsed_date_format": "%b %y"
+    },
+    "Vnew_Visitas únicas e não únicas na plataforma": {
+    	"type": "line",
+    	"x": "visit_first_action_time",
+    	"y": "visitor_returning_count_true,visitor_returning_count_false",
+		"label_y": "Visitas não únicas,Visitas únicas",
+    	"csv_name": "Vnew_Visitas únicas e não únicas na plataforma.csv",
+		"csv_path": "/home/legton/pmec/metabase-reports/csvs/",
+		"rotation": 60,
+		"parse_date_columns": "visit_first_action_time"
+    },
+    "Número de usuários criados por mês 2": {
+    	"type": "horizontal_bar",
+    	"y": "created_at",
+    	"x": "count",
+		"label_y": "Mes",
+		"label_x": "Numero de Usuarios",
+    	"csv_name": "Número de usuários criados por mês.csv",
+		"csv_path": "/home/legton/pmec/metabase-reports/csvs/",
+		"rotation": 60,
+		"parse_date_columns": "created_at"
+    }
+}
