@@ -19,9 +19,20 @@
 		"csv_path": "/home/legton/pmec/metabase-reports/csvs/"
     },
     "Número de recursos educacionais por ttipo": {
-    	"type": "table",
+    	"type": "vertical_table",
     	"x": "name",
     	"y": "count",
+    	"headers": "true",
+    	"invert_headers_colors": "true",
+    	"csv_name": "Número de recursos educacionais por ttipo.csv",
+		"csv_path": "/home/legton/pmec/metabase-reports/csvs/"
+    },
+    "Número de recursos educacionais por tttipo": {
+    	"type": "horizontal_table",
+    	"x": "name",
+    	"y": "count",
+    	"headers": "true",
+    	"invert_headers_colors": "true",
     	"csv_name": "Número de recursos educacionais por ttipo.csv",
 		"csv_path": "/home/legton/pmec/metabase-reports/csvs/"
     },

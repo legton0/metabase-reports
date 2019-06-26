@@ -9,6 +9,7 @@ import os
 import json
 from datetime import datetime, date, timedelta
 import random
+import math
 
 class GraphGeneratorParser(object):
 
@@ -192,6 +193,8 @@ class GraphsGenerator():
       label_rotation = GraphGeneratorParser.get_optional_value(graph_info, "label_rotation", default_value=0)
       description = GraphGeneratorParser.get_optional_value(graph_info, "description", default_value="")
       g_filter = GraphGeneratorParser.get_optional_value(graph_info, "filter", default_value=None)
+      t_headers = GraphGeneratorParser.get_optional_value(graph_info, "headers", default_value=None)
+      t_invert = GraphGeneratorParser.get_optional_value(graph_info, "invert_headers_colors", default_value=None)
       if (g_filter != None):
         x, x_data, label_x = GraphGeneratorParser.filter_x_data(graph_csv, graph_info, g_filter)
         y, y_data, label_y = GraphGeneratorParser.filter_y_data(graph_csv, graph_info, g_filter)
@@ -199,12 +202,12 @@ class GraphsGenerator():
         x, x_data, label_x = GraphGeneratorParser.get_x_data(graph_csv, graph_info)
         y, y_data, label_y = GraphGeneratorParser.get_y_data(graph_csv, graph_info)
       path = "graphs" + os.path.sep + graph_name
-      GraphGenerator.generate_graph(g_type, x_data, y_data, label_x, label_y, path, title=graph_name, subtitle=description, rotation=rotation, label_rotation=label_rotation, color=color)
+      GraphGenerator.generate_graph(g_type, x_data, y_data, label_x, label_y, path, title=graph_name, subtitle=description, rotation=rotation, label_rotation=label_rotation, color=color, t_headers=t_headers, t_invert=t_invert)
 
 class GraphGenerator(object):
 
   @staticmethod
-  def generate_graph(type, x_data, y_data, x_label, y_label, path, title="", subtitle="", rotation=0, label_rotation=0, color=None):
+  def generate_graph(type, x_data, y_data, x_label, y_label, path, title="", subtitle="", rotation=0, label_rotation=0, color=None, t_headers=None, t_invert=None):
 
     fig, ax = plt.subplots()
 
@@ -240,19 +243,50 @@ class GraphGenerator(object):
         plt.plot(x_data, data, color=(f1,f2,f3), linewidth=2, label=y, marker='o')
       plt.legend()
       plt.xticks(rotation=rotation)
-    elif (type == 'table'):
+    elif (type == 'horizontal_table'):
+      ax.axis('off')
       fig.set_figheight(2, forward=False)
-      columns = x_data
-      cell_text = [[y for y in y_data]]
-      the_table = plt.table(cellText=cell_text, colLabels=columns, loc='center')
+      figwidth = 3 + (3 * math.ceil(len(x_data) / 5))
+      fig.set_figwidth(figwidth, forward=False)
+      colors = []
+      if (t_headers != None):
+        cell_text = [[x_label] + x_data, [y_label] + y_data]
+        if (t_invert != None):
+          colors = [["k"] + ["w" for x in x_data], ["k"] + ["w" for y in y_data]]
+          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center', cellColours=colors)
+          the_table._cells[(0, 0)]._text.set_color('w')
+          the_table._cells[(1, 0)]._text.set_color('w')
+        else:
+          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
+      else:
+        cell_text = [x_data, y_data]
+        the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
       the_table.scale(2, 2)
-
-      ax.xaxis.set_visible(False) 
-      ax.yaxis.set_visible(False)
-      ax.spines['bottom'].set_visible(False)
-      ax.spines['left'].set_visible(False)
-      plt.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
-      print(fig.get_figheight())
+    elif (type == 'vertical_table'):
+      ax.axis('off')
+      figheight = 1.5 + (1.5 * math.ceil(len(x_data) / 5))
+      fig.set_figheight(figheight, forward=False)
+      colors = []
+      cell_text = []
+      i = 0
+      while i < len(x_data):
+        colors.append(["w", "w"])
+        cell_text.append([])
+        cell_text[i].append(x_data[i])
+        cell_text[i].append(y_data[i])
+        i += 1
+      if (t_headers != None):
+        cell_text = [[x_label, y_label]] + cell_text
+        if (t_invert != None):
+          colors = [["k", "k"]] + colors
+          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center', cellColours=colors)
+          the_table._cells[(0, 0)]._text.set_color('w')
+          the_table._cells[(0, 1)]._text.set_color('w')
+        else:
+          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
+      else:
+        the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
+      the_table.scale(2, 2)
 
     if (title != "" or subtitle != ""):
       plt.suptitle(title, y=1.1, fontsize=15)
