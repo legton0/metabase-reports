@@ -195,6 +195,7 @@ class GraphsGenerator():
       g_filter = GraphGeneratorParser.get_optional_value(graph_info, "filter", default_value=None)
       t_headers = GraphGeneratorParser.get_optional_value(graph_info, "headers", default_value=None)
       t_invert = GraphGeneratorParser.get_optional_value(graph_info, "invert_headers_colors", default_value=None)
+      p_no_values = GraphGeneratorParser.get_optional_value(graph_info, "no_values", default_value=None)
       if (g_filter != None):
         x, x_data, label_x = GraphGeneratorParser.filter_x_data(graph_csv, graph_info, g_filter)
         y, y_data, label_y = GraphGeneratorParser.filter_y_data(graph_csv, graph_info, g_filter)
@@ -202,12 +203,12 @@ class GraphsGenerator():
         x, x_data, label_x = GraphGeneratorParser.get_x_data(graph_csv, graph_info)
         y, y_data, label_y = GraphGeneratorParser.get_y_data(graph_csv, graph_info)
       path = "graphs" + os.path.sep + graph_name
-      GraphGenerator.generate_graph(g_type, x_data, y_data, label_x, label_y, path, title=graph_name, subtitle=description, rotation=rotation, label_rotation=label_rotation, color=color, t_headers=t_headers, t_invert=t_invert)
+      GraphGenerator.generate_graph(g_type, x_data, y_data, label_x, label_y, path, title=graph_name, subtitle=description, rotation=rotation, label_rotation=label_rotation, color=color, t_headers=t_headers, t_invert=t_invert, p_no_values=p_no_values)
 
 class GraphGenerator(object):
 
   @staticmethod
-  def generate_graph(type, x_data, y_data, x_label, y_label, path, title="", subtitle="", rotation=0, label_rotation=0, color=None, t_headers=None, t_invert=None):
+  def generate_graph(type, x_data, y_data, x_label, y_label, path, title="", subtitle="", rotation=0, label_rotation=0, color=None, t_headers=None, t_invert=None, p_no_values=None):
 
     fig, ax = plt.subplots()
 
@@ -232,7 +233,10 @@ class GraphGenerator(object):
 
       GraphGenerator.display_label_barh(ax, bars, rotation=label_rotation)
     elif (type == 'pie'):
-      plt.pie(y_data, labels=x_data, autopct='%1.1f%%', shadow=True, startangle=90)
+      if (p_no_values != None):
+        plt.pie(y_data, labels=x_data, autopct='%1.1f%%', startangle=rotation)
+      else:
+        plt.pie(y_data, labels=x_data, autopct=lambda pct: GraphGenerator.display_values_pie(pct, y_data), startangle=rotation)
       plt.axis('equal')
     elif (type == 'line'):
       random.seed(9000)
@@ -318,6 +322,11 @@ class GraphGenerator(object):
       text_y = bar.get_y() + bar.get_height() / 2
       text_x = bar.get_width() + distance
       ax.text(text_x, text_y, text, va='center', rotation=rotation)
+
+  @staticmethod
+  def display_values_pie(pct, allvals):
+    absolute = int(pct/100.*np.sum(allvals))
+    return "{:.1f}%\n({:d})".format(pct, absolute)
 
 if __name__ == "__main__":
   generator = GraphsGenerator("/home/legton/pmec/metabase-reports/")
