@@ -26,6 +26,9 @@ class Graph():
     if (self.date_columns_to_be_parsed != None):
       self.fix_date()
 
+  def test_override(self):
+    print("=> Graph method")
+
   def read_csv(self):
     self.csv_path = self.information["csv_path"]
     self.csv_name = self.information["csv_name"]
@@ -100,82 +103,190 @@ class Graph():
         print("Date format: '%Y'")
         df[col] = df[col].apply(lambda x: x.strftime('%Y'))
 
+  def generate_graph(self):
+    if (self.name != "" or self.description != ""):
+      plt.suptitle(self.name, y=1.1, fontsize=15)
+      plt.title(self.description, y=1.1, fontsize=13)
+    print("Storing in " + self.save_path + ".png\n")
+    plt.savefig(self.save_path, bbox_inches = 'tight', pad_inches = 0.2)
+    plt.clf()
+
 class GraphSubclass(Graph):
   def __init__(self, name, information):
     Graph.__init__(self, name, information)
     self.rotation = self.get_optional_value(self.information, "rotation", default_value=0)
     self.filter = self.get_optional_value(self.information, "filter", default_value=None)
-    self.x, self.x_data, self.x_label = GraphGeneratorParser.get_x_data(self, self.csv, self.information)
+    self.x, self.x_data, self.x_label = self.get_x_data()
     if (self.filter != None):
       self.x_data = list(dict.fromkeys(self.x_data))
-      self.y, self.y_data, self.y_label = GraphGeneratorParser.filter_y_data(self, self.csv, self.information, self.filter)
+      self.y, self.y_data, self.y_label = self.filter_y_data()
     else:
-      self.y, self.y_data, self.y_label = GraphGeneratorParser.get_y_data(self, self.csv, self.information)
+      self.y, self.y_data, self.y_label = self.get_y_data()
     #Remover depois:
     self.label_rotation = self.get_optional_value(self.information, "label_rotation", default_value=0)
     self.t_headers = self.get_optional_value(self.information, "headers", default_value=None)
     self.t_invert = self.get_optional_value(self.information, "invert_headers_colors", default_value=None)
     self.p_no_values = self.get_optional_value(self.information, "no_values", default_value=None)
 
-class GraphGeneratorParser(object):
+  def generate_graph(self):
+    fig, ax = plt.subplots()
+    if (self.type == 'bar'):
+      bars = plt.bar(self.x_data, self.y_data, align="center", color=self.colors)
+      plt.xticks(rotation=self.rotation)
+      plt.gcf().subplots_adjust(left=0.3, right=0.7)
+      plt.gcf().set_size_inches(30, plt.gcf().get_size_inches()[1])
 
-  @staticmethod
-  def get_x(graph_info):
-    # if (graph_info["type"] == "bar"):
-    #   x = graph_info["columns"]
-    # elif (graph_info["type"] == "line_with_filter"):
-    #   x = graph_info["columns"]
-    # elif (graph_info["type"] == "line"):
-    #   x = graph_info["columns"]
-    # elif (graph_info["type"] == "pie"):
-    #   x = graph_info["labels"]
-    x = graph_info["x"]
+      plt.xlabel(self.x_label)
+      plt.ylabel(self.y_label)
+
+      self.display_label_bar(ax, bars, rotation=self.label_rotation)
+    elif (self.type == 'horizontal_bar'):
+      bars = plt.barh(self.y_data, self.x_data, align="center", color=self.colors)
+      plt.xticks(rotation=self.rotation)
+      plt.gcf().subplots_adjust(left=0.3, right=0.7)
+      plt.gcf().set_size_inches(15, plt.gcf().get_size_inches()[1])
+
+      plt.xlabel(self.x_label)
+      plt.ylabel(self.y_label)
+
+      self.display_label_barh(ax, bars, rotation=self.label_rotation)
+    elif (self.type == 'pie'):
+      if (self.p_no_values != None):
+        plt.pie(self.y_data, labels=self.x_data, autopct='%1.1f%%', startangle=self.rotation)
+      else:
+        plt.pie(self.y_data, labels=self.x_data, autopct=lambda pct: self.display_values_pie(pct, self.y_data), startangle=self.rotation)
+      plt.axis('equal')
+    elif (self.type == 'line'):
+      random.seed(9000)
+      for y, data in self.y_data.items():
+        f1 = random.random()
+        f2 = random.random()
+        f3 = random.random()
+        plt.plot(self.x_data, data, color=(f1,f2,f3), linewidth=2, label=y, marker='o')
+      plt.legend()
+      plt.xticks(rotation=self.rotation)
+    elif (self.type == 'horizontal_table'):
+      ax.axis('off')
+      fig.set_figheight(2, forward=False)
+      figwidth = 3 + (3 * math.ceil(len(self.x_data) / 5))
+      fig.set_figwidth(figwidth, forward=False)
+      colors = []
+      if (self.t_headers != None):
+        cell_text = [[self.x_label] + self.x_data, [self.y_label] + self.y_data]
+        if (self.t_invert != None):
+          colors = [["k"] + ["w" for x in self.x_data], ["k"] + ["w" for y in self.y_data]]
+          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center', cellColours=colors)
+          the_table._cells[(0, 0)]._text.set_color('w')
+          the_table._cells[(1, 0)]._text.set_color('w')
+        else:
+          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
+      else:
+        cell_text = [self.x_data, self.y_data]
+        the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
+      the_table.scale(2, 2)
+    elif (self.type == 'vertical_table'):
+      ax.axis('off')
+      figheight = 1.5 + (1.5 * math.ceil(len(self.x_data) / 5))
+      fig.set_figheight(figheight, forward=False)
+      colors = []
+      cell_text = []
+      i = 0
+      while i < len(self.x_data):
+        colors.append(["w", "w"])
+        cell_text.append([])
+        cell_text[i].append(self.x_data[i])
+        cell_text[i].append(self.y_data[i])
+        i += 1
+      if (self.t_headers != None):
+        cell_text = [[self.x_label, self.y_label]] + cell_text
+        if (self.t_invert != None):
+          colors = [["k", "k"]] + colors
+          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center', cellColours=colors)
+          the_table._cells[(0, 0)]._text.set_color('w')
+          the_table._cells[(0, 1)]._text.set_color('w')
+        else:
+          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
+      else:
+        the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
+      the_table.scale(2, 2)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    super(GraphSubclass, self).generate_graph()
+
+  def display_label_bar(self, ax, bars, rotation=0):
+    max_y_value = ax.get_ylim()[1]
+    distance = max_y_value * 0.01
+    for bar in bars:
+      text = bar.get_height()
+      text_x = bar.get_x() + bar.get_width() / 2
+      text_y = bar.get_height() + distance
+      ax.text(text_x, text_y, text, ha='center', va='bottom', rotation=rotation)
+
+  def display_label_barh(self, ax, bars, rotation=0):
+    max_x_value = ax.get_xlim()[1]
+    distance = max_x_value * 0.0025
+    for bar in bars:
+      text = bar.get_width()
+      text_y = bar.get_y() + bar.get_height() / 2
+      text_x = bar.get_width() + distance
+      ax.text(text_x, text_y, text, va='center', rotation=rotation)
+
+  def display_values_pie(self, pct, allvals):
+    absolute = int(pct/100.*np.sum(allvals))
+    return "{:.1f}%\n({:d})".format(pct, absolute)
+
+  def get_x(self):
+    # if (self.information["type"] == "bar"):
+    #   x = self.information["columns"]
+    # elif (self.information["type"] == "line_with_filter"):
+    #   x = self.information["columns"]
+    # elif (self.information["type"] == "line"):
+    #   x = self.information["columns"]
+    # elif (self.information["type"] == "pie"):
+    #   x = self.information["labels"]
+    x = self.information["x"]
     return x
 
-  @staticmethod
-  def get_x_data(graph, graph_csv, graph_info):
-    x = GraphGeneratorParser.get_x(graph_info)
-    x_data = graph_csv[x].tolist()
-    label_x = graph.get_optional_value(graph_info, "label_x", default_value=x)
+  def get_x_data(self):
+    x = self.get_x()
+    x_data = self.csv[x].tolist()
+    label_x = self.get_optional_value(self.information, "label_x", default_value=x)
     return x, x_data, label_x
 
-  @staticmethod
-  def get_y(graph_info):
-    # if (graph_info["type"] == "bar"):
-    #   y = graph_info["rows"]
-    # elif (graph_info["type"] == "line_with_filter"):
-    #   y = graph_info["rows"]
-    # elif (graph_info["type"] == "line"):
-    #   return graph_info["y_columns"].split(',')
-    # elif (graph_info["type"] == "pie"):
-    #   y = graph_info["data"]
-    if (graph_info["type"] == "line"):
-      return graph_info["y"].split(',')
-    y = graph_info["y"]
+  def get_y(self):
+    # if (self.information["type"] == "bar"):
+    #   y = self.information["rows"]
+    # elif (self.information["type"] == "line_with_filter"):
+    #   y = self.information["rows"]
+    # elif (self.information["type"] == "line"):
+    #   return self.information["y_columns"].split(',')
+    # elif (self.information["type"] == "pie"):
+    #   y = self.information["data"]
+    if (self.information["type"] == "line"):
+      return self.information["y"].split(',')
+    y = self.information["y"]
     return y
 
-  @staticmethod
-  def get_y_data(graph, graph_csv, graph_info):
-    y = GraphGeneratorParser.get_y(graph_info)
+  def get_y_data(self):
+    y = self.get_y()
     if isinstance(y, list):
-      label_y = graph.get_optional_value(graph_info, "label_y", default_value=y)
+      label_y = self.get_optional_value(self.information, "label_y", default_value=y)
       if not isinstance(label_y, list):
         label_y = label_y.split(',')
       y_data = {}
       i = 0
       while (i < len(y)):
-        y_data[label_y[i]] = graph_csv[y[i]].tolist()
+        y_data[label_y[i]] = self.csv[y[i]].tolist()
         i+=1
     else:
-      label_y = graph.get_optional_value(graph_info, "label_y", default_value=y)
-      y_data = graph_csv[y].tolist()
+      label_y = self.get_optional_value(self.information, "label_y", default_value=y)
+      y_data = self.csv[y].tolist()
     return y, y_data, label_y
 
-  @staticmethod
-  def filter_y_data(graph, graph_csv, graph_info, g_filter):
-    y, y_data, label_y = GraphGeneratorParser.get_y_data(graph, graph_csv, graph_info)
-    f_data = graph_csv[g_filter].tolist()
-    label_f = graph.get_optional_value(graph_info, "label_filter", default_value=None)
+  def filter_y_data(self):
+    y, y_data, label_y = self.get_y_data()
+    f_data = self.csv[self.filter].tolist()
+    label_f = self.get_optional_value(self.information, "label_filter", default_value=None)
     if (label_f != None):
       label_f = label_f.split(',')
       label_f.reverse()
@@ -184,7 +295,7 @@ class GraphGeneratorParser(object):
     for y, data in y_data.items():
       for f in f_values:
         if (label_f == None):
-          key = y + "_" + g_filter + ":" + str(f)
+          key = y + "_" + self.filter + ":" + str(f)
         else:
           key = y + " " + label_f.pop()
         new_y_data[key] = []
@@ -210,133 +321,10 @@ class GraphsGenerator():
     if not(os.path.exists(os.getcwd()+os.path.sep+"graphs")):
       os.mkdir("graphs")
     print("")
-    for graph_name, graph_info in self.graphs.items():
-      graph_test = GraphSubclass(graph_name, graph_info)
+    for graph_name, self.information in self.graphs.items():
+      graph_test = GraphSubclass(graph_name, self.information)
       print("Generating " + graph_name + " graph")
-      GraphGenerator.generate_graph(graph_test)
-
-class GraphGenerator(object):
-
-  @staticmethod
-  def generate_graph(graph):
-
-    fig, ax = plt.subplots()
-
-    if (graph.type == 'bar'):
-      bars = plt.bar(graph.x_data, graph.y_data, align="center", color=graph.colors)
-      plt.xticks(rotation=graph.rotation)
-      plt.gcf().subplots_adjust(left=0.3, right=0.7)
-      plt.gcf().set_size_inches(30, plt.gcf().get_size_inches()[1])
-
-      plt.xlabel(graph.x_label)
-      plt.ylabel(graph.y_label)
-
-      GraphGenerator.display_label_bar(ax, bars, rotation=graph.label_rotation)
-    elif (graph.type == 'horizontal_bar'):
-      bars = plt.barh(graph.y_data, graph.x_data, align="center", color=graph.colors)
-      plt.xticks(rotation=graph.rotation)
-      plt.gcf().subplots_adjust(left=0.3, right=0.7)
-      plt.gcf().set_size_inches(15, plt.gcf().get_size_inches()[1])
-
-      plt.xlabel(graph.x_label)
-      plt.ylabel(graph.y_label)
-
-      GraphGenerator.display_label_barh(ax, bars, rotation=graph.label_rotation)
-    elif (graph.type == 'pie'):
-      if (graph.p_no_values != None):
-        plt.pie(graph.y_data, labels=graph.x_data, autopct='%1.1f%%', startangle=graph.rotation)
-      else:
-        plt.pie(graph.y_data, labels=graph.x_data, autopct=lambda pct: GraphGenerator.display_values_pie(pct, graph.y_data), startangle=graph.rotation)
-      plt.axis('equal')
-    elif (graph.type == 'line'):
-      random.seed(9000)
-      for y, data in graph.y_data.items():
-        f1 = random.random()
-        f2 = random.random()
-        f3 = random.random()
-        plt.plot(graph.x_data, data, color=(f1,f2,f3), linewidth=2, label=y, marker='o')
-      plt.legend()
-      plt.xticks(rotation=graph.rotation)
-    elif (graph.type == 'horizontal_table'):
-      ax.axis('off')
-      fig.set_figheight(2, forward=False)
-      figwidth = 3 + (3 * math.ceil(len(graph.x_data) / 5))
-      fig.set_figwidth(figwidth, forward=False)
-      colors = []
-      if (graph.t_headers != None):
-        cell_text = [[graph.x_label] + graph.x_data, [graph.y_label] + graph.y_data]
-        if (graph.t_invert != None):
-          colors = [["k"] + ["w" for x in graph.x_data], ["k"] + ["w" for y in graph.y_data]]
-          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center', cellColours=colors)
-          the_table._cells[(0, 0)]._text.set_color('w')
-          the_table._cells[(1, 0)]._text.set_color('w')
-        else:
-          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
-      else:
-        cell_text = [graph.x_data, graph.y_data]
-        the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
-      the_table.scale(2, 2)
-    elif (graph.type == 'vertical_table'):
-      ax.axis('off')
-      figheight = 1.5 + (1.5 * math.ceil(len(graph.x_data) / 5))
-      fig.set_figheight(figheight, forward=False)
-      colors = []
-      cell_text = []
-      i = 0
-      while i < len(graph.x_data):
-        colors.append(["w", "w"])
-        cell_text.append([])
-        cell_text[i].append(graph.x_data[i])
-        cell_text[i].append(graph.y_data[i])
-        i += 1
-      if (graph.t_headers != None):
-        cell_text = [[graph.x_label, graph.y_label]] + cell_text
-        if (graph.t_invert != None):
-          colors = [["k", "k"]] + colors
-          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center', cellColours=colors)
-          the_table._cells[(0, 0)]._text.set_color('w')
-          the_table._cells[(0, 1)]._text.set_color('w')
-        else:
-          the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
-      else:
-        the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
-      the_table.scale(2, 2)
-
-    if (graph.name != "" or graph.description != ""):
-      plt.suptitle(graph.name, y=1.1, fontsize=15)
-      plt.title(graph.description, y=1.1, fontsize=13)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-
-    print("Storing in " + graph.save_path + ".png\n")
-    plt.savefig(graph.save_path, bbox_inches = 'tight', pad_inches = 0.2)
-
-    plt.clf()
-
-  @staticmethod
-  def display_label_bar(ax, bars, rotation=0):
-    max_y_value = ax.get_ylim()[1]
-    distance = max_y_value * 0.01
-    for bar in bars:
-      text = bar.get_height()
-      text_x = bar.get_x() + bar.get_width() / 2
-      text_y = bar.get_height() + distance
-      ax.text(text_x, text_y, text, ha='center', va='bottom', rotation=rotation)
-
-  @staticmethod
-  def display_label_barh(ax, bars, rotation=0):
-    max_x_value = ax.get_xlim()[1]
-    distance = max_x_value * 0.0025
-    for bar in bars:
-      text = bar.get_width()
-      text_y = bar.get_y() + bar.get_height() / 2
-      text_x = bar.get_width() + distance
-      ax.text(text_x, text_y, text, va='center', rotation=rotation)
-
-  @staticmethod
-  def display_values_pie(pct, allvals):
-    absolute = int(pct/100.*np.sum(allvals))
-    return "{:.1f}%\n({:d})".format(pct, absolute)
+      graph_test.generate_graph()
 
 if __name__ == "__main__":
   generator = GraphsGenerator("/home/legton/pmec/metabase-reports/")
