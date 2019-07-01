@@ -54,54 +54,49 @@ class Graph():
     date_columns = self.date_columns_to_be_parsed
     date_format = self.parsed_date_format
     locale.setlocale(locale.LC_ALL, '')
-    columns = list(df)
-    aux_cols = list(df)
     time_diff = timedelta(seconds=0)
     date_columns = date_columns.split(',')
 
-    for col in aux_cols:
-      if col in date_columns:
-        try:
-          df[col] = pandas.to_datetime(df[col])
-        except ValueError:
-          columns.remove(col)
-          pass
-      else:
-        columns.remove(col)
-
-    for col in columns:
-      if (date_format == None):
-        print("Trying to automatically parse date...")
-        try:
-          time0 = df[col][0].replace(tzinfo=None)
-          time1 = df[col][1].replace(tzinfo=None)
-          time_diff = time1 - time0
-        except Exception as e:
-          print(e.__class__.__name__ + ":")
-          print(str(e))
-          print("Using default date format")
-          pass
-      if (date_format != None):
-        print("Date format: " + date_format)
-        df[col] = df[col].apply(lambda x: x.strftime(date_format))
-      elif (time_diff < timedelta(seconds=60)):
-        print("Date format: '%d %b %y %H:%M:%S'")
-        df[col] = df[col].apply(lambda x: x.strftime('%d %b %y %H:%M:%S'))
-      elif (time_diff < timedelta(minutes=60)):
-        print("Date format: '%d %b %y %H:%M'")
-        df[col] = df[col].apply(lambda x: x.strftime('%d %b %y %H:%M'))
-      elif (time_diff < timedelta(hours=24)):
-        print("Date format: '%d %b %y %H'")
-        df[col] = df[col].apply(lambda x: x.strftime('%d %b %y %H'))
-      elif (time_diff < timedelta(days=28)):
-        print("Date format: '%d %b %y'")
-        df[col] = df[col].apply(lambda x: x.strftime('%d %b %y'))
-      elif (time_diff < timedelta(days=365)):
-        print("Date format: '%b %y'")
-        df[col] = df[col].apply(lambda x: x.strftime('%b %y'))
-      else:
-        print("Date format: '%Y'")
-        df[col] = df[col].apply(lambda x: x.strftime('%Y'))
+    for col in date_columns:
+      try:
+        df[col] = pandas.to_datetime(df[col])
+        if (date_format == None):
+          print("Trying to automatically parse date...")
+          try:
+            time0 = df[col][0].replace(tzinfo=None)
+            time1 = df[col][1].replace(tzinfo=None)
+            time_diff = time1 - time0
+          except Exception as e:
+            print(e.__class__.__name__ + ":")
+            print(str(e))
+            print("Using default date format")
+            pass
+        if (date_format != None):
+          print("Date format: " + date_format)
+          df[col] = df[col].apply(lambda x: x.strftime(date_format))
+        elif (time_diff < timedelta(seconds=60)):
+          print("Date format: '%d %b %y %H:%M:%S'")
+          df[col] = df[col].apply(lambda x: x.strftime('%d %b %y %H:%M:%S'))
+        elif (time_diff < timedelta(minutes=60)):
+          print("Date format: '%d %b %y %H:%M'")
+          df[col] = df[col].apply(lambda x: x.strftime('%d %b %y %H:%M'))
+        elif (time_diff < timedelta(hours=24)):
+          print("Date format: '%d %b %y %H'")
+          df[col] = df[col].apply(lambda x: x.strftime('%d %b %y %H'))
+        elif (time_diff < timedelta(days=28)):
+          print("Date format: '%d %b %y'")
+          df[col] = df[col].apply(lambda x: x.strftime('%d %b %y'))
+        elif (time_diff < timedelta(days=365)):
+          print("Date format: '%b %y'")
+          df[col] = df[col].apply(lambda x: x.strftime('%b %y'))
+        else:
+          print("Date format: '%Y'")
+          df[col] = df[col].apply(lambda x: x.strftime('%Y'))
+      except Exception as e:
+        print(e.__class__.__name__ + ":")
+        print(str(e))
+        print("Couldn't parse date")
+        pass
 
   def generate_graph(self):
     if (self.name != "" or self.description != ""):
