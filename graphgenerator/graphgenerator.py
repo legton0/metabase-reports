@@ -11,109 +11,45 @@ from datetime import datetime, date, timedelta
 import random
 import math
 
-class GraphGeneratorParser(object):
+class Graph():
+  def __init__(self, name, information):
+    self.name = name
+    self.information = information
+    self.type = self.information["type"]
+    self.save_path = "graphs" + os.path.sep + self.name
+    self.read_csv()
+    self.read_optional_info()
+    if (self.sort_asc_by != None):
+      self.csv.sort_values(by=[self.sort_asc_by], inplace=True)
+    if (self.sort_desc_by != None):
+      self.csv.sort_values(by=[self.sort_desc_by], inplace=True, ascending=False)
+    if (self.date_columns_to_be_parsed != None):
+      self.fix_date()
 
-  @staticmethod
-  def get_optional_value(dictionary, key, default_value=None):
+  def read_csv(self):
+    self.csv_path = self.information["csv_path"]
+    self.csv_name = self.information["csv_name"]
+    self.csv = pandas.read_csv(self.csv_path + self.csv_name, delimiter=",")
+
+  def read_optional_info(self):
+    self.description = self.get_optional_value(self.information, "description", default_value="")
+    self.colors = self.get_optional_value(self.information, "colors", default_value="#A9C920")
+    self.date_columns_to_be_parsed = self.get_optional_value(self.information, "parse_date_columns")
+    self.parsed_date_format = self.get_optional_value(self.information, "parsed_date_format")
+    self.sort_asc_by = self.get_optional_value(self.information, "sort_asc")
+    self.sort_desc_by = self.get_optional_value(self.information, "sort_desc")
+
+  def get_optional_value(self, dictionary, key, default_value=None):
     try:
       return dictionary[key]
     except:
       return default_value
       pass
 
-  @staticmethod
-  def get_x(graph_info):
-    # if (graph_info["type"] == "bar"):
-    #   x = graph_info["columns"]
-    # elif (graph_info["type"] == "line_with_filter"):
-    #   x = graph_info["columns"]
-    # elif (graph_info["type"] == "line"):
-    #   x = graph_info["columns"]
-    # elif (graph_info["type"] == "pie"):
-    #   x = graph_info["labels"]
-    x = graph_info["x"]
-    return x
-
-  @staticmethod
-  def get_x_data(graph_csv, graph_info):
-    x = GraphGeneratorParser.get_x(graph_info)
-    x_data = graph_csv[x].tolist()
-    label_x = GraphGeneratorParser.get_optional_value(graph_info, "label_x", default_value=x)
-    return x, x_data, label_x
-
-  @staticmethod
-  def get_y(graph_info):
-    # if (graph_info["type"] == "bar"):
-    #   y = graph_info["rows"]
-    # elif (graph_info["type"] == "line_with_filter"):
-    #   y = graph_info["rows"]
-    # elif (graph_info["type"] == "line"):
-    #   return graph_info["y_columns"].split(',')
-    # elif (graph_info["type"] == "pie"):
-    #   y = graph_info["data"]
-    if (graph_info["type"] == "line"):
-      return graph_info["y"].split(',')
-    y = graph_info["y"]
-    return y
-
-  @staticmethod
-  def get_y_data(graph_csv, graph_info):
-    y = GraphGeneratorParser.get_y(graph_info)
-    if isinstance(y, list):
-      label_y = GraphGeneratorParser.get_optional_value(graph_info, "label_y", default_value=y)
-      if not isinstance(label_y, list):
-        label_y = label_y.split(',')
-      y_data = {}
-      i = 0
-      while (i < len(y)):
-        y_data[label_y[i]] = graph_csv[y[i]].tolist()
-        i+=1
-    else:
-      label_y = GraphGeneratorParser.get_optional_value(graph_info, "label_y", default_value=y)
-      y_data = graph_csv[y].tolist()
-    return y, y_data, label_y
-
-  @staticmethod
-  def filter_x_data(graph_csv, graph_info, g_filter):
-    x, x_data, label_x = GraphGeneratorParser.get_x_data(graph_csv, graph_info)
-    new_x_data = list(dict.fromkeys(x_data))
-    return x, new_x_data, label_x
-
-  @staticmethod
-  def filter_y_data(graph_csv, graph_info, g_filter):
-    y, y_data, label_y = GraphGeneratorParser.get_y_data(graph_csv, graph_info)
-    f_data = graph_csv[g_filter].tolist()
-    label_f = GraphGeneratorParser.get_optional_value(graph_info, "label_filter", default_value=None)
-    if (label_f != None):
-      label_f = label_f.split(',')
-      label_f.reverse()
-    f_values = list(dict.fromkeys(f_data))
-    new_y_data = {}
-    for y, data in y_data.items():
-      for f in f_values:
-        if (label_f == None):
-          key = y + "_" + g_filter + ":" + str(f)
-        else:
-          key = y + " " + label_f.pop()
-        new_y_data[key] = []
-        i = 0
-        while i < len(f_data):
-          if (f_data[i] == f):
-            new_y_data[key].append(data[i])
-          i += 1
-    return y, new_y_data, label_y
-
-  @staticmethod
-  def sort_csv(graph_csv, graph_info):
-    sort_asc = GraphGeneratorParser.get_optional_value(graph_info, "sort_asc", default_value=None)
-    sort_desc = GraphGeneratorParser.get_optional_value(graph_info, "sort_desc", default_value=None)
-    if (sort_asc != None):
-      graph_csv.sort_values(by=[sort_asc], inplace=True)
-    elif (sort_desc != None):
-      graph_csv.sort_values(by=[sort_desc], inplace=True, ascending=False)
-
-  @staticmethod
-  def fix_date(df, date_columns, date_format=None):
+  def fix_date(self):
+    df = self.csv
+    date_columns = self.date_columns_to_be_parsed
+    date_format = self.parsed_date_format
     locale.setlocale(locale.LC_ALL, '')
     columns = list(df)
     aux_cols = list(df)
@@ -164,6 +100,101 @@ class GraphGeneratorParser(object):
         print("Date format: '%Y'")
         df[col] = df[col].apply(lambda x: x.strftime('%Y'))
 
+class GraphSubclass(Graph):
+  def __init__(self, name, information):
+    Graph.__init__(self, name, information)
+    self.rotation = self.get_optional_value(self.information, "rotation", default_value=0)
+    self.filter = self.get_optional_value(self.information, "filter", default_value=None)
+    self.x, self.x_data, self.x_label = GraphGeneratorParser.get_x_data(self, self.csv, self.information)
+    if (self.filter != None):
+      self.x_data = list(dict.fromkeys(self.x_data))
+      self.y, self.y_data, self.y_label = GraphGeneratorParser.filter_y_data(self, self.csv, self.information, self.filter)
+    else:
+      self.y, self.y_data, self.y_label = GraphGeneratorParser.get_y_data(self, self.csv, self.information)
+    #Remover depois:
+    self.label_rotation = self.get_optional_value(self.information, "label_rotation", default_value=0)
+    self.t_headers = self.get_optional_value(self.information, "headers", default_value=None)
+    self.t_invert = self.get_optional_value(self.information, "invert_headers_colors", default_value=None)
+    self.p_no_values = self.get_optional_value(self.information, "no_values", default_value=None)
+
+class GraphGeneratorParser(object):
+
+  @staticmethod
+  def get_x(graph_info):
+    # if (graph_info["type"] == "bar"):
+    #   x = graph_info["columns"]
+    # elif (graph_info["type"] == "line_with_filter"):
+    #   x = graph_info["columns"]
+    # elif (graph_info["type"] == "line"):
+    #   x = graph_info["columns"]
+    # elif (graph_info["type"] == "pie"):
+    #   x = graph_info["labels"]
+    x = graph_info["x"]
+    return x
+
+  @staticmethod
+  def get_x_data(graph, graph_csv, graph_info):
+    x = GraphGeneratorParser.get_x(graph_info)
+    x_data = graph_csv[x].tolist()
+    label_x = graph.get_optional_value(graph_info, "label_x", default_value=x)
+    return x, x_data, label_x
+
+  @staticmethod
+  def get_y(graph_info):
+    # if (graph_info["type"] == "bar"):
+    #   y = graph_info["rows"]
+    # elif (graph_info["type"] == "line_with_filter"):
+    #   y = graph_info["rows"]
+    # elif (graph_info["type"] == "line"):
+    #   return graph_info["y_columns"].split(',')
+    # elif (graph_info["type"] == "pie"):
+    #   y = graph_info["data"]
+    if (graph_info["type"] == "line"):
+      return graph_info["y"].split(',')
+    y = graph_info["y"]
+    return y
+
+  @staticmethod
+  def get_y_data(graph, graph_csv, graph_info):
+    y = GraphGeneratorParser.get_y(graph_info)
+    if isinstance(y, list):
+      label_y = graph.get_optional_value(graph_info, "label_y", default_value=y)
+      if not isinstance(label_y, list):
+        label_y = label_y.split(',')
+      y_data = {}
+      i = 0
+      while (i < len(y)):
+        y_data[label_y[i]] = graph_csv[y[i]].tolist()
+        i+=1
+    else:
+      label_y = graph.get_optional_value(graph_info, "label_y", default_value=y)
+      y_data = graph_csv[y].tolist()
+    return y, y_data, label_y
+
+  @staticmethod
+  def filter_y_data(graph, graph_csv, graph_info, g_filter):
+    y, y_data, label_y = GraphGeneratorParser.get_y_data(graph, graph_csv, graph_info)
+    f_data = graph_csv[g_filter].tolist()
+    label_f = graph.get_optional_value(graph_info, "label_filter", default_value=None)
+    if (label_f != None):
+      label_f = label_f.split(',')
+      label_f.reverse()
+    f_values = list(dict.fromkeys(f_data))
+    new_y_data = {}
+    for y, data in y_data.items():
+      for f in f_values:
+        if (label_f == None):
+          key = y + "_" + g_filter + ":" + str(f)
+        else:
+          key = y + " " + label_f.pop()
+        new_y_data[key] = []
+        i = 0
+        while i < len(f_data):
+          if (f_data[i] == f):
+            new_y_data[key].append(data[i])
+          i += 1
+    return y, new_y_data, label_y
+
 class GraphsGenerator():
   '''
   Handle graph methods
@@ -180,108 +211,87 @@ class GraphsGenerator():
       os.mkdir("graphs")
     print("")
     for graph_name, graph_info in self.graphs.items():
-      graph_csv = pandas.read_csv(graph_info["csv_path"] + graph_info["csv_name"], delimiter=",")
+      graph_test = GraphSubclass(graph_name, graph_info)
       print("Generating " + graph_name + " graph")
-      g_type = graph_info["type"]
-      parsed_date_format = GraphGeneratorParser.get_optional_value(graph_info, "parsed_date_format")
-      parse_date_columns = GraphGeneratorParser.get_optional_value(graph_info, "parse_date_columns")
-      GraphGeneratorParser.sort_csv(graph_csv, graph_info)
-      if (parse_date_columns != None):
-        GraphGeneratorParser.fix_date(graph_csv, parse_date_columns, date_format=parsed_date_format)
-      color = GraphGeneratorParser.get_optional_value(graph_info, "color", default_value="#A9C920")
-      rotation = GraphGeneratorParser.get_optional_value(graph_info, "rotation", default_value=0)
-      label_rotation = GraphGeneratorParser.get_optional_value(graph_info, "label_rotation", default_value=0)
-      description = GraphGeneratorParser.get_optional_value(graph_info, "description", default_value="")
-      g_filter = GraphGeneratorParser.get_optional_value(graph_info, "filter", default_value=None)
-      t_headers = GraphGeneratorParser.get_optional_value(graph_info, "headers", default_value=None)
-      t_invert = GraphGeneratorParser.get_optional_value(graph_info, "invert_headers_colors", default_value=None)
-      p_no_values = GraphGeneratorParser.get_optional_value(graph_info, "no_values", default_value=None)
-      if (g_filter != None):
-        x, x_data, label_x = GraphGeneratorParser.filter_x_data(graph_csv, graph_info, g_filter)
-        y, y_data, label_y = GraphGeneratorParser.filter_y_data(graph_csv, graph_info, g_filter)
-      else:
-        x, x_data, label_x = GraphGeneratorParser.get_x_data(graph_csv, graph_info)
-        y, y_data, label_y = GraphGeneratorParser.get_y_data(graph_csv, graph_info)
-      path = "graphs" + os.path.sep + graph_name
-      GraphGenerator.generate_graph(g_type, x_data, y_data, label_x, label_y, path, title=graph_name, subtitle=description, rotation=rotation, label_rotation=label_rotation, color=color, t_headers=t_headers, t_invert=t_invert, p_no_values=p_no_values)
+      GraphGenerator.generate_graph(graph_test)
 
 class GraphGenerator(object):
 
   @staticmethod
-  def generate_graph(type, x_data, y_data, x_label, y_label, path, title="", subtitle="", rotation=0, label_rotation=0, color=None, t_headers=None, t_invert=None, p_no_values=None):
+  def generate_graph(graph):
 
     fig, ax = plt.subplots()
 
-    if (type == 'bar'):
-      bars = plt.bar(x_data, y_data, align="center", color=color)
-      plt.xticks(rotation=rotation)
+    if (graph.type == 'bar'):
+      bars = plt.bar(graph.x_data, graph.y_data, align="center", color=graph.colors)
+      plt.xticks(rotation=graph.rotation)
       plt.gcf().subplots_adjust(left=0.3, right=0.7)
       plt.gcf().set_size_inches(30, plt.gcf().get_size_inches()[1])
 
-      plt.xlabel(x_label)
-      plt.ylabel(y_label)
+      plt.xlabel(graph.x_label)
+      plt.ylabel(graph.y_label)
 
-      GraphGenerator.display_label_bar(ax, bars, rotation=label_rotation)
-    elif (type == 'horizontal_bar'):
-      bars = plt.barh(y_data, x_data, align="center", color=color)
-      plt.xticks(rotation=rotation)
+      GraphGenerator.display_label_bar(ax, bars, rotation=graph.label_rotation)
+    elif (graph.type == 'horizontal_bar'):
+      bars = plt.barh(graph.y_data, graph.x_data, align="center", color=graph.colors)
+      plt.xticks(rotation=graph.rotation)
       plt.gcf().subplots_adjust(left=0.3, right=0.7)
       plt.gcf().set_size_inches(15, plt.gcf().get_size_inches()[1])
 
-      plt.xlabel(x_label)
-      plt.ylabel(y_label)
+      plt.xlabel(graph.x_label)
+      plt.ylabel(graph.y_label)
 
-      GraphGenerator.display_label_barh(ax, bars, rotation=label_rotation)
-    elif (type == 'pie'):
-      if (p_no_values != None):
-        plt.pie(y_data, labels=x_data, autopct='%1.1f%%', startangle=rotation)
+      GraphGenerator.display_label_barh(ax, bars, rotation=graph.label_rotation)
+    elif (graph.type == 'pie'):
+      if (graph.p_no_values != None):
+        plt.pie(graph.y_data, labels=graph.x_data, autopct='%1.1f%%', startangle=graph.rotation)
       else:
-        plt.pie(y_data, labels=x_data, autopct=lambda pct: GraphGenerator.display_values_pie(pct, y_data), startangle=rotation)
+        plt.pie(graph.y_data, labels=graph.x_data, autopct=lambda pct: GraphGenerator.display_values_pie(pct, graph.y_data), startangle=graph.rotation)
       plt.axis('equal')
-    elif (type == 'line'):
+    elif (graph.type == 'line'):
       random.seed(9000)
-      for y, data in y_data.items():
+      for y, data in graph.y_data.items():
         f1 = random.random()
         f2 = random.random()
         f3 = random.random()
-        plt.plot(x_data, data, color=(f1,f2,f3), linewidth=2, label=y, marker='o')
+        plt.plot(graph.x_data, data, color=(f1,f2,f3), linewidth=2, label=y, marker='o')
       plt.legend()
-      plt.xticks(rotation=rotation)
-    elif (type == 'horizontal_table'):
+      plt.xticks(rotation=graph.rotation)
+    elif (graph.type == 'horizontal_table'):
       ax.axis('off')
       fig.set_figheight(2, forward=False)
-      figwidth = 3 + (3 * math.ceil(len(x_data) / 5))
+      figwidth = 3 + (3 * math.ceil(len(graph.x_data) / 5))
       fig.set_figwidth(figwidth, forward=False)
       colors = []
-      if (t_headers != None):
-        cell_text = [[x_label] + x_data, [y_label] + y_data]
-        if (t_invert != None):
-          colors = [["k"] + ["w" for x in x_data], ["k"] + ["w" for y in y_data]]
+      if (graph.t_headers != None):
+        cell_text = [[graph.x_label] + graph.x_data, [graph.y_label] + graph.y_data]
+        if (graph.t_invert != None):
+          colors = [["k"] + ["w" for x in graph.x_data], ["k"] + ["w" for y in graph.y_data]]
           the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center', cellColours=colors)
           the_table._cells[(0, 0)]._text.set_color('w')
           the_table._cells[(1, 0)]._text.set_color('w')
         else:
           the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
       else:
-        cell_text = [x_data, y_data]
+        cell_text = [graph.x_data, graph.y_data]
         the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
       the_table.scale(2, 2)
-    elif (type == 'vertical_table'):
+    elif (graph.type == 'vertical_table'):
       ax.axis('off')
-      figheight = 1.5 + (1.5 * math.ceil(len(x_data) / 5))
+      figheight = 1.5 + (1.5 * math.ceil(len(graph.x_data) / 5))
       fig.set_figheight(figheight, forward=False)
       colors = []
       cell_text = []
       i = 0
-      while i < len(x_data):
+      while i < len(graph.x_data):
         colors.append(["w", "w"])
         cell_text.append([])
-        cell_text[i].append(x_data[i])
-        cell_text[i].append(y_data[i])
+        cell_text[i].append(graph.x_data[i])
+        cell_text[i].append(graph.y_data[i])
         i += 1
-      if (t_headers != None):
-        cell_text = [[x_label, y_label]] + cell_text
-        if (t_invert != None):
+      if (graph.t_headers != None):
+        cell_text = [[graph.x_label, graph.y_label]] + cell_text
+        if (graph.t_invert != None):
           colors = [["k", "k"]] + colors
           the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center', cellColours=colors)
           the_table._cells[(0, 0)]._text.set_color('w')
@@ -292,14 +302,14 @@ class GraphGenerator(object):
         the_table = plt.table(cellText=cell_text, loc='center', cellLoc='center')
       the_table.scale(2, 2)
 
-    if (title != "" or subtitle != ""):
-      plt.suptitle(title, y=1.1, fontsize=15)
-      plt.title(subtitle, y=1.1, fontsize=13)
+    if (graph.name != "" or graph.description != ""):
+      plt.suptitle(graph.name, y=1.1, fontsize=15)
+      plt.title(graph.description, y=1.1, fontsize=13)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
-    print("Storing in " + path + ".png\n")
-    plt.savefig(path, bbox_inches = 'tight', pad_inches = 0.2)
+    print("Storing in " + graph.save_path + ".png\n")
+    plt.savefig(graph.save_path, bbox_inches = 'tight', pad_inches = 0.2)
 
     plt.clf()
 
