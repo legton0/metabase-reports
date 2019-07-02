@@ -26,9 +26,6 @@ class Graph():
     if (self.date_columns_to_be_parsed != None):
       self.fix_date()
 
-  def test_override(self):
-    print("=> Graph method")
-
   def read_csv(self):
     self.csv_path = self.information["csv_path"]
     self.csv_name = self.information["csv_name"]
@@ -105,6 +102,31 @@ class Graph():
     print("Storing in " + self.save_path + ".png\n")
     plt.savefig(self.save_path, bbox_inches = 'tight', pad_inches = 0.2)
     plt.clf()
+
+class Pie(Graph):
+  def __init__(self, name, information):
+    Graph.__init__(self, name, information)
+    self.start_angle = self.get_optional_value(self.information, "start_angle", default_value=0)
+    self.dont_show_values = self.get_optional_value(self.information, "dont_show_values", default_value=None)
+    self.labels_csv_column = self.information["labels"]
+    self.values_csv_column = self.information["values"]
+    self.labels = self.csv[self.labels_csv_column].tolist()
+    self.values = self.csv[self.values_csv_column].tolist()
+
+  def generate_graph(self):
+    fig, ax = plt.subplots()
+    if (self.dont_show_values != None):
+      plt.pie(self.values, labels=self.labels, autopct='%1.1f%%', startangle=self.start_angle)
+    else:
+      plt.pie(self.values, labels=self.labels, autopct=lambda pct: self.display_values_pie(pct, self.values), startangle=self.start_angle)
+    plt.axis('equal')
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    super(Pie, self).generate_graph()
+
+  def display_values_pie(self, pct, allvals):
+    absolute = int(pct/100.*np.sum(allvals))
+    return "{:.1f}%\n({:d})".format(pct, absolute)
 
 class GraphSubclass(Graph):
   def __init__(self, name, information):
@@ -316,9 +338,13 @@ class GraphsGenerator():
     if not(os.path.exists(os.getcwd()+os.path.sep+"graphs")):
       os.mkdir("graphs")
     print("")
-    for graph_name, self.information in self.graphs.items():
-      graph_test = GraphSubclass(graph_name, self.information)
+    for graph_name, graph_info in self.graphs.items():
+      graph_type = graph_info["type"]
       print("Generating " + graph_name + " graph")
+      if (graph_type == "pie"):
+        graph_test = Pie(graph_name, graph_info)
+      else:
+        graph_test = GraphSubclass(graph_name, graph_info)
       graph_test.generate_graph()
 
 if __name__ == "__main__":

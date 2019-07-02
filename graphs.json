@@ -13,9 +13,9 @@
     },
     "Número de recursos educacionais por tipo": {
     	"type": "pie",
-    	"x": "name",
-    	"y": "count",
-    	"rotation": 90,
+    	"labels": "name",
+    	"values": "count",
+    	"start_angle": 90,
     	"csv_name": "Número de recursos educacionais por ttipo.csv",
 		"csv_path": "/home/legton/pmec/metabase-reports/csvs/"
     },
