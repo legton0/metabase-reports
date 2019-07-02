@@ -148,7 +148,7 @@ class HorizontalTable(Table):
     self.read_columns()
     self.colors = None
     if (self.invert_header_color != None and self.display_header != None):
-      self.generate_colors()
+      self.generate_cell_colors()
 
   def read_columns(self):
     for header in self.headers:
@@ -161,11 +161,11 @@ class HorizontalTable(Table):
       else:
         self.columns.append(column)
 
-  def generate_colors(self):
+  def generate_cell_colors(self):
     n_colors = range(self.columns_size)
     self.colors = [["k"] + ["w" for x in n_colors], ["k"] + ["w" for y in n_colors]]
 
-  def color_text(self):
+  def color_cell_text(self):
     n_headers = range(len(self.headers))
     for i in n_headers:
       self.table._cells[(i, 0)]._text.set_color('w')
@@ -179,7 +179,7 @@ class HorizontalTable(Table):
     fig.set_figwidth(figwidth, forward=False)
     if (self.colors != None):
       self.table = plt.table(cellText=self.columns, loc='center', cellLoc='center', cellColours=self.colors)
-      self.color_text()
+      self.color_cell_text()
     else:
       self.table = plt.table(cellText=self.columns, loc='center', cellLoc='center')
     super(HorizontalTable, self).generate_graph()
@@ -192,7 +192,7 @@ class VerticalTable(Table):
     self.read_rows()
     self.colors = None
     if (self.invert_header_color != None and self.display_header != None):
-      self.generate_colors()
+      self.generate_cell_colors()
 
   def read_rows(self):
     rows = []
@@ -210,7 +210,7 @@ class VerticalTable(Table):
     if (self.display_header != None):
       self.rows = [self.headers] + self.rows
 
-  def generate_colors(self):
+  def generate_cell_colors(self):
     n_colors = range(self.rows_size)
     colors = []
     for i in n_colors:
@@ -221,7 +221,7 @@ class VerticalTable(Table):
       header_colors.append("k")
     self.colors = [header_colors] + colors
 
-  def color_text(self):
+  def color_cell_text(self):
     n_headers = range(len(self.headers))
     for i in n_headers:
       self.table._cells[(0, i)]._text.set_color('w')
@@ -234,7 +234,7 @@ class VerticalTable(Table):
     fig.set_figheight(figheight, forward=False)
     if (self.colors != None):
       self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center', cellColours=self.colors)
-      self.color_text()
+      self.color_cell_text()
     else:
       self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center')
     super(VerticalTable, self).generate_graph()
