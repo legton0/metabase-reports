@@ -120,13 +120,124 @@ class Pie(Graph):
     else:
       plt.pie(self.values, labels=self.labels, autopct=lambda pct: self.display_values_pie(pct, self.values), startangle=self.start_angle)
     plt.axis('equal')
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
     super(Pie, self).generate_graph()
 
   def display_values_pie(self, pct, allvals):
     absolute = int(pct/100.*np.sum(allvals))
     return "{:.1f}%\n({:d})".format(pct, absolute)
+
+class Table(Graph):
+  def __init__(self, name, information):
+    Graph.__init__(self, name, information)
+    self.display_header = self.get_optional_value(self.information, "display_header", default_value=None)
+    self.invert_header_color = self.get_optional_value(self.information, "invert_header_color", default_value=None)
+    self.headers = self.information["headers"].split(',')
+    self.table = None
+
+  def generate_graph(self):
+    self.table.scale(2, 2)
+    #ax.spines['top'].set_visible(False)
+    #ax.spines['right'].set_visible(False)
+    super(Table, self).generate_graph()
+
+class HorizontalTable(Table):
+  def __init__(self, name, information):
+    Table.__init__(self, name, information)
+    self.columns = []
+    self.columns_size = 0
+    self.read_columns()
+    self.colors = None
+    if (self.invert_header_color != None and self.display_header != None):
+      self.generate_colors()
+
+  def read_columns(self):
+    for header in self.headers:
+      column = self.csv[header].tolist()
+      if (self.columns_size == 0):
+        self.columns_size = len(column)
+      if (self.display_header != None):
+        column_with_header = [header] + column
+        self.columns.append(column_with_header)
+      else:
+        self.columns.append(column)
+
+  def generate_colors(self):
+    n_colors = range(self.columns_size)
+    self.colors = [["k"] + ["w" for x in n_colors], ["k"] + ["w" for y in n_colors]]
+
+  def color_text(self):
+    n_headers = range(len(self.headers))
+    for i in n_headers:
+      self.table._cells[(i, 0)]._text.set_color('w')
+      i += 1
+
+  def generate_graph(self):
+    fig, ax = plt.subplots()
+    ax.axis('off')
+    fig.set_figheight(2, forward=False)
+    figwidth = 3 + (3 * math.ceil(self.columns_size / 5))
+    fig.set_figwidth(figwidth, forward=False)
+    if (self.colors != None):
+      self.table = plt.table(cellText=self.columns, loc='center', cellLoc='center', cellColours=self.colors)
+      self.color_text()
+    else:
+      self.table = plt.table(cellText=self.columns, loc='center', cellLoc='center')
+    super(HorizontalTable, self).generate_graph()
+
+class VerticalTable(Table):
+  def __init__(self, name, information):
+    Table.__init__(self, name, information)
+    self.rows = []
+    self.rows_size = 0
+    self.read_rows()
+    self.colors = None
+    if (self.invert_header_color != None and self.display_header != None):
+      self.generate_colors()
+
+  def read_rows(self):
+    rows = []
+    for header in self.headers:
+      row = self.csv[header].tolist()
+      if (self.rows_size == 0):
+        self.rows_size = len(row)
+      rows.append(row)
+    i = 0
+    while i < self.rows_size:
+      self.rows.append([])
+      for row in rows:
+        self.rows[i].append(row[i])
+      i += 1
+    if (self.display_header != None):
+      self.rows = [self.headers] + self.rows
+
+  def generate_colors(self):
+    n_colors = range(self.rows_size)
+    colors = []
+    for i in n_colors:
+      colors.append(["w", "w"])
+    n_headers = range(len(self.headers))
+    header_colors = []
+    for i in n_headers:
+      header_colors.append("k")
+    self.colors = [header_colors] + colors
+
+  def color_text(self):
+    n_headers = range(len(self.headers))
+    for i in n_headers:
+      self.table._cells[(0, i)]._text.set_color('w')
+      i += 1
+
+  def generate_graph(self):
+    fig, ax = plt.subplots()
+    ax.axis('off')
+    figheight = 1.5 + (1.5 * math.ceil(self.rows_size / 5))
+    fig.set_figheight(figheight, forward=False)
+    if (self.colors != None):
+      self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center', cellColours=self.colors)
+      self.color_text()
+    else:
+      self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center')
+    super(VerticalTable, self).generate_graph()
 
 class GraphSubclass(Graph):
   def __init__(self, name, information):
@@ -343,6 +454,10 @@ class GraphsGenerator():
       print("Generating " + graph_name + " graph")
       if (graph_type == "pie"):
         graph_test = Pie(graph_name, graph_info)
+      elif (graph_type == "horizontal_table"):
+        graph_test = HorizontalTable(graph_name, graph_info)
+      elif (graph_type == "vertical_table"):
+        graph_test = VerticalTable(graph_name, graph_info)
       else:
         graph_test = GraphSubclass(graph_name, graph_info)
       graph_test.generate_graph()
