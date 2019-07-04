@@ -136,8 +136,6 @@ class Table(Graph):
 
   def generate_graph(self):
     self.table.scale(2, 2)
-    #ax.spines['top'].set_visible(False)
-    #ax.spines['right'].set_visible(False)
     super(Table, self).generate_graph()
 
 class HorizontalTable(Table):
@@ -238,6 +236,139 @@ class VerticalTable(Table):
     else:
       self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center')
     super(VerticalTable, self).generate_graph()
+
+class BarLine(Graph):
+  def __init__(self, name, information):
+    Graph.__init__(self, name, information)
+    self.rotation = self.get_optional_value(self.information, "rotation", default_value=0)
+    self.filter = self.get_optional_value(self.information, "filter", default_value=None)
+    self.x = self.information["x"]
+    self.x_data = self.csv[self.x].tolist()
+    self.x_label = self.get_optional_value(self.information, "label_x", default_value=self.x)
+    self.y = self.information["y"].split(',')
+    if (self.filter != None):
+      self.x_data = list(dict.fromkeys(self.x_data))
+      self.y_data, self.y_label = self.filter_y_data()
+    else:
+      self.y_data, self.y_label = self.get_y_data()
+
+  def generate_graph(self):
+    super(BarLine, self).generate_graph()
+
+  def get_y_data(self):
+    label_y = self.get_optional_value(self.information, "label_y", default_value=self.y)
+    if not isinstance(label_y, list):
+      label_y = label_y.split(',')
+    y_data = {}
+    i = 0
+    while (i < len(self.y)):
+      y_data[label_y[i]] = self.csv[self.y[i]].tolist()
+      i+=1
+    return y_data, label_y
+
+  def filter_y_data(self):
+    y_data, label_y = self.get_y_data()
+    f_data = self.csv[self.filter].tolist()
+    label_f = self.get_optional_value(self.information, "label_filter", default_value=None)
+    if (label_f != None):
+      label_f = label_f.split(',')
+      label_f.reverse()
+    f_values = list(dict.fromkeys(f_data))
+    new_y_data = {}
+    for y, data in y_data.items():
+      for f in f_values:
+        if (label_f == None):
+          key = y + "_" + self.filter + ":" + str(f)
+        else:
+          key = y + " " + label_f.pop()
+        new_y_data[key] = []
+        i = 0
+        while i < len(f_data):
+          if (f_data[i] == f):
+            new_y_data[key].append(data[i])
+          i += 1
+    return new_y_data, label_y
+
+class Line(BarLine):
+  def __init__(self, name, information):
+    BarLine.__init__(self, name, information)
+
+  def generate_graph(self):
+    fig, ax = plt.subplots()
+    random.seed(9000)
+    for y, data in self.y_data.items():
+      f1 = random.random()
+      f2 = random.random()
+      f3 = random.random()
+      plt.plot(self.x_data, data, color=(f1,f2,f3), linewidth=2, label=y, marker='o')
+    plt.legend()
+    plt.xticks(rotation=self.rotation)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    super(Line, self).generate_graph()
+
+class Bar(BarLine):
+  def __init__(self, name, information):
+    BarLine.__init__(self, name, information)
+    self.dont_show_values = self.get_optional_value(self.information, "dont_show_values", default_value=None)
+    self.values_rotation = self.get_optional_value(self.information, "values_rotation", default_value=0)
+
+  def generate_graph(self):
+    super(Bar, self).generate_graph()
+
+class HorizontalBar(Bar):
+  def __init__(self, name, information):
+    Bar.__init__(self, name, information)
+
+  def generate_graph(self):
+    fig, ax = plt.subplots()
+    bars = plt.barh(self.y_data[self.y_label[0]], self.x_data, align="center", color=self.colors)
+    plt.xticks(rotation=self.rotation)
+    plt.gcf().subplots_adjust(left=0.3, right=0.7)
+    plt.gcf().set_size_inches(15, plt.gcf().get_size_inches()[1])
+    plt.xlabel(self.x_label)
+    plt.ylabel(self.y_label[0])
+    if (self.dont_show_values == None):
+      self.display_values_barh(ax, bars, rotation=self.values_rotation)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    super(HorizontalBar, self).generate_graph()
+
+  def display_values_barh(self, ax, bars, rotation=0):
+    max_x_value = ax.get_xlim()[1]
+    distance = max_x_value * 0.0025
+    for bar in bars:
+      text = bar.get_width()
+      text_y = bar.get_y() + bar.get_height() / 2
+      text_x = bar.get_width() + distance
+      ax.text(text_x, text_y, text, va='center', rotation=rotation)
+
+class VerticalBar(Bar):
+  def __init__(self, name, information):
+    Bar.__init__(self, name, information)
+
+  def generate_graph(self):
+    fig, ax = plt.subplots()
+    bars = plt.bar(self.x_data, self.y_data[self.y_label[0]], align="center", color=self.colors)
+    plt.xticks(rotation=self.rotation)
+    plt.gcf().subplots_adjust(left=0.3, right=0.7)
+    plt.gcf().set_size_inches(30, plt.gcf().get_size_inches()[1])
+    plt.xlabel(self.x_label)
+    plt.ylabel(self.y_label[0])
+    if (self.dont_show_values == None):
+      self.display_values_bar(ax, bars, rotation=self.values_rotation)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    super(VerticalBar, self).generate_graph()
+
+  def display_values_bar(self, ax, bars, rotation=0):
+    max_y_value = ax.get_ylim()[1]
+    distance = max_y_value * 0.01
+    for bar in bars:
+      text = bar.get_height()
+      text_x = bar.get_x() + bar.get_width() / 2
+      text_y = bar.get_height() + distance
+      ax.text(text_x, text_y, text, ha='center', va='bottom', rotation=rotation)
 
 class GraphSubclass(Graph):
   def __init__(self, name, information):
@@ -458,9 +589,18 @@ class GraphsGenerator():
         graph_test = HorizontalTable(graph_name, graph_info)
       elif (graph_type == "vertical_table"):
         graph_test = VerticalTable(graph_name, graph_info)
+      elif (graph_type == "line"):
+        graph_test = Line(graph_name, graph_info)
+      elif (graph_type == "bar"):
+        graph_test = VerticalBar(graph_name, graph_info)
+      elif (graph_type == "horizontal_bar"):
+        graph_test = HorizontalBar(graph_name, graph_info)
       else:
-        graph_test = GraphSubclass(graph_name, graph_info)
-      graph_test.generate_graph()
+        graph_test = None
+        print("Invalid graph type: " + graph_type)
+        print("")
+      if (graph_test != None):
+        graph_test.generate_graph()
 
 if __name__ == "__main__":
   generator = GraphsGenerator("/home/legton/pmec/metabase-reports/")
