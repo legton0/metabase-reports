@@ -237,61 +237,20 @@ class VerticalTable(Table):
       self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center')
     super(VerticalTable, self).generate_graph()
 
-class BarLine(Graph):
+class Line(Graph):
   def __init__(self, name, information):
     Graph.__init__(self, name, information)
     self.rotation = self.get_optional_value(self.information, "rotation", default_value=0)
     self.filter = self.get_optional_value(self.information, "filter", default_value=None)
+    self.labels_filtered = self.get_optional_value(self.information, "labels_filtered", default_value=None)
     self.x = self.information["x"]
     self.x_data = self.csv[self.x].tolist()
-    self.x_label = self.get_optional_value(self.information, "label_x", default_value=self.x)
     self.y = self.information["y"].split(',')
     if (self.filter != None):
       self.x_data = list(dict.fromkeys(self.x_data))
-      self.y_data, self.y_label = self.filter_y_data()
+      self.y_data, self.y_labels = self.filter_y_data()
     else:
-      self.y_data, self.y_label = self.get_y_data()
-
-  def generate_graph(self):
-    super(BarLine, self).generate_graph()
-
-  def get_y_data(self):
-    label_y = self.get_optional_value(self.information, "label_y", default_value=self.y)
-    if not isinstance(label_y, list):
-      label_y = label_y.split(',')
-    y_data = {}
-    i = 0
-    while (i < len(self.y)):
-      y_data[label_y[i]] = self.csv[self.y[i]].tolist()
-      i+=1
-    return y_data, label_y
-
-  def filter_y_data(self):
-    y_data, label_y = self.get_y_data()
-    f_data = self.csv[self.filter].tolist()
-    label_f = self.get_optional_value(self.information, "label_filter", default_value=None)
-    if (label_f != None):
-      label_f = label_f.split(',')
-      label_f.reverse()
-    f_values = list(dict.fromkeys(f_data))
-    new_y_data = {}
-    for y, data in y_data.items():
-      for f in f_values:
-        if (label_f == None):
-          key = y + "_" + self.filter + ":" + str(f)
-        else:
-          key = y + " " + label_f.pop()
-        new_y_data[key] = []
-        i = 0
-        while i < len(f_data):
-          if (f_data[i] == f):
-            new_y_data[key].append(data[i])
-          i += 1
-    return new_y_data, label_y
-
-class Line(BarLine):
-  def __init__(self, name, information):
-    BarLine.__init__(self, name, information)
+      self.y_data, self.y_labels = self.get_y_data()
 
   def generate_graph(self):
     fig, ax = plt.subplots()
@@ -307,11 +266,52 @@ class Line(BarLine):
     ax.spines['right'].set_visible(False)
     super(Line, self).generate_graph()
 
-class Bar(BarLine):
+  def get_y_data(self):
+    y_labels = self.get_optional_value(self.information, "y_labels", default_value=self.y)
+    if not isinstance(y_labels, list):
+      y_labels = y_labels.split(',')
+    y_data = {}
+    i = 0
+    while (i < len(self.y)):
+      y_data[y_labels[i]] = self.csv[self.y[i]].tolist()
+      i+=1
+    return y_data, y_labels
+
+  def filter_y_data(self):
+    y_data, y_labels = self.get_y_data()
+    f_data = self.csv[self.filter].tolist()
+    labels_f = self.labels_filtered
+    if (labels_f != None):
+      labels_f = labels_f.split(',')
+      labels_f.reverse()
+    f_values = list(dict.fromkeys(f_data))
+    new_y_data = {}
+    for y, data in y_data.items():
+      for f in f_values:
+        if (labels_f == None):
+          key = y + "_" + self.filter + ":" + str(f)
+        else:
+          key = y + " " + labels_f.pop()
+        new_y_data[key] = []
+        i = 0
+        while i < len(f_data):
+          if (f_data[i] == f):
+            new_y_data[key].append(data[i])
+          i += 1
+    return new_y_data, y_labels
+
+class Bar(Graph):
   def __init__(self, name, information):
-    BarLine.__init__(self, name, information)
+    Graph.__init__(self, name, information)
+    self.rotation = self.get_optional_value(self.information, "rotation", default_value=0)
     self.dont_show_values = self.get_optional_value(self.information, "dont_show_values", default_value=None)
     self.values_rotation = self.get_optional_value(self.information, "values_rotation", default_value=0)
+    self.y = self.information["y"]
+    self.y_label = self.get_optional_value(self.information, "y_label", default_value=self.y)
+    self.y_data = self.csv[self.y].tolist()
+    self.x = self.information["x"]
+    self.x_label = self.get_optional_value(self.information, "x_label", default_value=self.x)
+    self.x_data = self.csv[self.x].tolist()
 
   def generate_graph(self):
     super(Bar, self).generate_graph()
@@ -322,12 +322,12 @@ class HorizontalBar(Bar):
 
   def generate_graph(self):
     fig, ax = plt.subplots()
-    bars = plt.barh(self.y_data[self.y_label[0]], self.x_data, align="center", color=self.colors)
+    bars = plt.barh(self.y_data, self.x_data, align="center", color=self.colors)
     plt.xticks(rotation=self.rotation)
     plt.gcf().subplots_adjust(left=0.3, right=0.7)
     plt.gcf().set_size_inches(15, plt.gcf().get_size_inches()[1])
     plt.xlabel(self.x_label)
-    plt.ylabel(self.y_label[0])
+    plt.ylabel(self.y_label)
     if (self.dont_show_values == None):
       self.display_values_barh(ax, bars, rotation=self.values_rotation)
     ax.spines['top'].set_visible(False)
@@ -349,12 +349,12 @@ class VerticalBar(Bar):
 
   def generate_graph(self):
     fig, ax = plt.subplots()
-    bars = plt.bar(self.x_data, self.y_data[self.y_label[0]], align="center", color=self.colors)
+    bars = plt.bar(self.x_data, self.y_data, align="center", color=self.colors)
     plt.xticks(rotation=self.rotation)
     plt.gcf().subplots_adjust(left=0.3, right=0.7)
     plt.gcf().set_size_inches(30, plt.gcf().get_size_inches()[1])
     plt.xlabel(self.x_label)
-    plt.ylabel(self.y_label[0])
+    plt.ylabel(self.y_label)
     if (self.dont_show_values == None):
       self.display_values_bar(ax, bars, rotation=self.values_rotation)
     ax.spines['top'].set_visible(False)
@@ -377,7 +377,7 @@ class GraphsGenerator():
   def __init__(self, json_path=None):
     self.json_path = json_path
     if (self.json_path == None):
-      self.json_path = sys.path[0] + os.path.sep
+      self.json_path = sys.path + os.path.sep
     with open(self.json_path + "graphs.json", "r") as read_file:
       self.graphs = json.load(read_file)
 
