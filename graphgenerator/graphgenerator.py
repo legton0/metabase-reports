@@ -24,7 +24,7 @@ class Graph():
     if (self.sort_desc_by != None):
       self.csv.sort_values(by=[self.sort_desc_by], inplace=True, ascending=False)
     if (self.date_columns_to_be_parsed != None):
-      self.fix_date()
+      self.parse_date()
 
   def read_csv(self):
     self.csv_path = self.information["csv_path"]
@@ -33,7 +33,7 @@ class Graph():
 
   def read_optional_info(self):
     self.description = self.get_optional_value(self.information, "description", default_value="")
-    self.colors = self.get_optional_value(self.information, "colors", default_value="#A9C920")
+    self.primary_color = self.get_optional_value(self.information, "color", default_value="#A9C920")
     self.date_columns_to_be_parsed = self.get_optional_value(self.information, "parse_date_columns")
     self.parsed_date_format = self.get_optional_value(self.information, "parsed_date_format")
     self.sort_asc_by = self.get_optional_value(self.information, "sort_asc")
@@ -46,7 +46,7 @@ class Graph():
       return default_value
       pass
 
-  def fix_date(self):
+  def parse_date(self):
     df = self.csv
     date_columns = self.date_columns_to_be_parsed
     date_format = self.parsed_date_format
@@ -144,7 +144,7 @@ class HorizontalTable(Table):
     self.columns = []
     self.columns_size = 0
     self.read_columns()
-    self.colors = None
+    self.primary_color = None
     if (self.invert_header_color != None and self.display_header != None):
       self.generate_cell_colors()
 
@@ -161,7 +161,7 @@ class HorizontalTable(Table):
 
   def generate_cell_colors(self):
     n_colors = range(self.columns_size)
-    self.colors = [["k"] + ["w" for x in n_colors], ["k"] + ["w" for y in n_colors]]
+    self.primary_color = [["k"] + ["w" for x in n_colors], ["k"] + ["w" for y in n_colors]]
 
   def color_cell_text(self):
     n_headers = range(len(self.headers))
@@ -175,8 +175,8 @@ class HorizontalTable(Table):
     fig.set_figheight(2, forward=False)
     figwidth = 3 + (3 * math.ceil(self.columns_size / 5))
     fig.set_figwidth(figwidth, forward=False)
-    if (self.colors != None):
-      self.table = plt.table(cellText=self.columns, loc='center', cellLoc='center', cellColours=self.colors)
+    if (self.primary_color != None):
+      self.table = plt.table(cellText=self.columns, loc='center', cellLoc='center', cellColours=self.primary_color)
       self.color_cell_text()
     else:
       self.table = plt.table(cellText=self.columns, loc='center', cellLoc='center')
@@ -188,7 +188,7 @@ class VerticalTable(Table):
     self.rows = []
     self.rows_size = 0
     self.read_rows()
-    self.colors = None
+    self.primary_color = None
     if (self.invert_header_color != None and self.display_header != None):
       self.generate_cell_colors()
 
@@ -217,7 +217,7 @@ class VerticalTable(Table):
     header_colors = []
     for i in n_headers:
       header_colors.append("k")
-    self.colors = [header_colors] + colors
+    self.primary_color = [header_colors] + colors
 
   def color_cell_text(self):
     n_headers = range(len(self.headers))
@@ -230,8 +230,8 @@ class VerticalTable(Table):
     ax.axis('off')
     figheight = 1.5 + (1.5 * math.ceil(self.rows_size / 5))
     fig.set_figheight(figheight, forward=False)
-    if (self.colors != None):
-      self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center', cellColours=self.colors)
+    if (self.primary_color != None):
+      self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center', cellColours=self.primary_color)
       self.color_cell_text()
     else:
       self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center')
@@ -322,7 +322,7 @@ class HorizontalBar(Bar):
 
   def generate_graph(self):
     fig, ax = plt.subplots()
-    bars = plt.barh(self.y_data, self.x_data, align="center", color=self.colors)
+    bars = plt.barh(self.y_data, self.x_data, align="center", color=self.primary_color)
     plt.xticks(rotation=self.rotation)
     plt.gcf().subplots_adjust(left=0.3, right=0.7)
     plt.gcf().set_size_inches(15, plt.gcf().get_size_inches()[1])
@@ -349,7 +349,7 @@ class VerticalBar(Bar):
 
   def generate_graph(self):
     fig, ax = plt.subplots()
-    bars = plt.bar(self.x_data, self.y_data, align="center", color=self.colors)
+    bars = plt.bar(self.x_data, self.y_data, align="center", color=self.primary_color)
     plt.xticks(rotation=self.rotation)
     plt.gcf().subplots_adjust(left=0.3, right=0.7)
     plt.gcf().set_size_inches(30, plt.gcf().get_size_inches()[1])
@@ -370,14 +370,14 @@ class VerticalBar(Bar):
       text_y = bar.get_height() + distance
       ax.text(text_x, text_y, text, ha='center', va='bottom', rotation=rotation)
 
-class GraphsGenerator():
+class GraphGenerator():
   '''
   Handle graph methods
   '''
   def __init__(self, json_path=None):
     self.json_path = json_path
     if (self.json_path == None):
-      self.json_path = sys.path + os.path.sep
+      self.json_path = sys.path[0] + os.path.sep
     with open(self.json_path + "graphs.json", "r") as read_file:
       self.graphs = json.load(read_file)
 
@@ -389,24 +389,20 @@ class GraphsGenerator():
       graph_type = graph_info["type"]
       print("Generating " + graph_name + " graph")
       if (graph_type == "pie"):
-        graph_test = Pie(graph_name, graph_info)
+        graph = Pie(graph_name, graph_info)
       elif (graph_type == "horizontal_table"):
-        graph_test = HorizontalTable(graph_name, graph_info)
+        graph = HorizontalTable(graph_name, graph_info)
       elif (graph_type == "vertical_table"):
-        graph_test = VerticalTable(graph_name, graph_info)
+        graph = VerticalTable(graph_name, graph_info)
       elif (graph_type == "line"):
-        graph_test = Line(graph_name, graph_info)
+        graph = Line(graph_name, graph_info)
       elif (graph_type == "bar"):
-        graph_test = VerticalBar(graph_name, graph_info)
+        graph = VerticalBar(graph_name, graph_info)
       elif (graph_type == "horizontal_bar"):
-        graph_test = HorizontalBar(graph_name, graph_info)
+        graph = HorizontalBar(graph_name, graph_info)
       else:
-        graph_test = None
+        graph = None
         print("Invalid graph type: " + graph_type)
         print("")
-      if (graph_test != None):
-        graph_test.generate_graph()
-
-if __name__ == "__main__":
-  generator = GraphsGenerator("/home/legton/pmec/metabase-reports/")
-  generator.generate_graphs()
+      if (graph != None):
+        graph.generate_graph()
