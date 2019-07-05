@@ -5,6 +5,7 @@ import sys
 import os
 from metabaseapi.metabaseapi import MetabaseAPI
 from pdfreport.pdfreport import PDFReport
+from graphgenerator.graphgenerator import GraphGenerator
 
 class Metabase(MetabaseAPI):
 
@@ -16,6 +17,7 @@ class Metabase(MetabaseAPI):
     self.api_url = None
     self.init_config()
     MetabaseAPI.__init__(self, self.api_url, json_path=self.json_path)
+    self.graph_generator = GraphGenerator(json_path=self.json_path)
     if hasattr(self.cli_arguments, 'method'):
       self.chosen_method = getattr(self, self.cli_arguments.method)
       self.method_arguments = self.cli_arguments.args
@@ -134,7 +136,10 @@ class Metabase(MetabaseAPI):
         card = self.report.read_csv_file(metabase_card)
         self.report.print_csv_file(card, table_name=item['name'] + ".csv", path="csvs"+os.path.sep)
 
-  def no_method(self, ids):
+  def generate_graphs(self, args):
+    self.graph_generator.generate_graphs()
+
+  def no_method(self, args):
     print("No option was specified.")
     self.parser.print_help()
 
@@ -175,6 +180,10 @@ class Parser(argparse.ArgumentParser):
                             '--create_csv_files', dest="args", 
                             action=ClassAction, nargs="*",
                             help='print specified collection(s) or cards to csv files')
+    self.parser_group.add_argument(
+                            '--generate_graphs', dest="args", 
+                            action=ClassAction, nargs=0,
+                            help='generate specified graph(s)')
     self.add_argument('-A', '--api_url', action='store', dest='api_url',
                           help='define api url')
     self.add_argument('-J', '--json_path', action='store', dest='json_path',
