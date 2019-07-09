@@ -21,7 +21,7 @@
     },
     "Número de recursos educacionais por ttipo": {
     	"type": "vertical_table",
-    	"headers": "name,count",
+    	"rows": "name,count",
     	"display_header": "true",
     	"invert_header_color": "true",
     	"csv_name": "Número de recursos educacionais por ttipo.csv",
@@ -29,7 +29,7 @@
     },
     "Número de recursos educacionais por tttipo": {
     	"type": "horizontal_table",
-    	"headers": "name,count",
+        "columns": "name,count",
     	"display_header": "true",
     	"invert_header_color": "true",
     	"csv_name": "Número de recursos educacionais por ttipo.csv",

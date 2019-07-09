@@ -131,8 +131,7 @@ class Table(Graph):
     Graph.__init__(self, name, information)
     self.display_header = self.get_optional_value(self.information, "display_header", default_value=None)
     self.invert_header_color = self.get_optional_value(self.information, "invert_header_color", default_value=None)
-    self.headers = self.information["headers"].split(',')
-    self.headers_size = len(self.headers)
+    self.headers = self.get_optional_value(self.information, "headers", default_value=None)
     self.table = None
 
   def generate_graph(self):
@@ -142,7 +141,13 @@ class Table(Graph):
 class HorizontalTable(Table):
   def __init__(self, name, information):
     Table.__init__(self, name, information)
-    self.columns = []
+    self.columns = self.information["columns"]
+    if (self.headers == None):
+      self.headers = self.columns
+    self.headers = self.headers.split(',')
+    self.columns = self.columns.split(',')
+    self.headers_size = len(self.columns)
+    self.columns_data = []
     self.columns_size = 0
     self.read_columns()
     self.primary_color = None
@@ -150,15 +155,16 @@ class HorizontalTable(Table):
       self.generate_cell_colors()
 
   def read_columns(self):
-    for header in self.headers:
-      column = self.csv[header].tolist()
+    n_headers = range(self.headers_size)
+    for i in n_headers:
+      column_data = self.csv[self.columns[i]].tolist()
       if (self.columns_size == 0):
-        self.columns_size = len(column)
+        self.columns_size = len(column_data)
       if (self.display_header != None):
-        column_with_header = [header] + column
-        self.columns.append(column_with_header)
+        column_with_header = [self.headers[i]] + column_data
+        self.columns_data.append(column_with_header)
       else:
-        self.columns.append(column)
+        self.columns_data.append(column_data)
 
   def generate_cell_colors(self):
     n_colors = range(self.columns_size)
@@ -179,16 +185,22 @@ class HorizontalTable(Table):
     figwidth = 3 + (3 * math.ceil(self.columns_size / 5))
     fig.set_figwidth(figwidth, forward=False)
     if (self.primary_color != None):
-      self.table = plt.table(cellText=self.columns, loc='center', cellLoc='center', cellColours=self.primary_color)
+      self.table = plt.table(cellText=self.columns_data, loc='center', cellLoc='center', cellColours=self.primary_color)
       self.color_cell_text()
     else:
-      self.table = plt.table(cellText=self.columns, loc='center', cellLoc='center')
+      self.table = plt.table(cellText=self.columns_data, loc='center', cellLoc='center')
     super(HorizontalTable, self).generate_graph()
 
 class VerticalTable(Table):
   def __init__(self, name, information):
     Table.__init__(self, name, information)
-    self.rows = []
+    self.rows = self.information["rows"]
+    if (self.headers == None):
+      self.headers = self.rows
+    self.headers = self.headers.split(',')
+    self.rows = self.rows.split(',')
+    self.headers_size = len(self.rows)
+    self.rows_data = []
     self.rows_size = 0
     self.read_rows()
     self.primary_color = None
@@ -196,20 +208,23 @@ class VerticalTable(Table):
       self.generate_cell_colors()
 
   def read_rows(self):
-    rows = []
-    for header in self.headers:
-      row = self.csv[header].tolist()
+    n_headers = range(self.headers_size)
+    rows_data = []
+    headers = []
+    for i in n_headers:
+      row_data = self.csv[self.rows[i]].tolist()
       if (self.rows_size == 0):
-        self.rows_size = len(row)
-      rows.append(row)
+        self.rows_size = len(row_data)
+      rows_data.append(row_data)
+      headers.append(self.headers[i])
     i = 0
     while i < self.rows_size:
-      self.rows.append([])
-      for row in rows:
-        self.rows[i].append(row[i])
+      self.rows_data.append([])
+      for row_data in rows_data:
+        self.rows_data[i].append(row_data[i])
       i += 1
     if (self.display_header != None):
-      self.rows = [self.headers] + self.rows
+      self.rows_data = [headers] + self.rows_data
 
   def generate_cell_colors(self):
     n_colors = range(self.rows_size)
@@ -231,10 +246,10 @@ class VerticalTable(Table):
     figheight = 1.5 + (1.5 * math.ceil(self.rows_size / 5))
     fig.set_figheight(figheight, forward=False)
     if (self.primary_color != None):
-      self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center', cellColours=self.primary_color)
+      self.table = plt.table(cellText=self.rows_data, loc='center', cellLoc='center', cellColours=self.primary_color)
       self.color_cell_text()
     else:
-      self.table = plt.table(cellText=self.rows, loc='center', cellLoc='center')
+      self.table = plt.table(cellText=self.rows_data, loc='center', cellLoc='center')
     super(VerticalTable, self).generate_graph()
 
 class Line(Graph):
