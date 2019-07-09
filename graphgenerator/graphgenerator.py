@@ -132,6 +132,7 @@ class Table(Graph):
     self.display_header = self.get_optional_value(self.information, "display_header", default_value=None)
     self.invert_header_color = self.get_optional_value(self.information, "invert_header_color", default_value=None)
     self.headers = self.information["headers"].split(',')
+    self.headers_size = len(self.headers)
     self.table = None
 
   def generate_graph(self):
@@ -161,13 +162,15 @@ class HorizontalTable(Table):
 
   def generate_cell_colors(self):
     n_colors = range(self.columns_size)
-    self.primary_color = [["k"] + ["w" for x in n_colors], ["k"] + ["w" for y in n_colors]]
+    n_headers = range(self.headers_size)
+    self.primary_color = []
+    for i in n_headers:
+      self.primary_color.append(["k"] + ["w" for x in n_colors])
 
   def color_cell_text(self):
-    n_headers = range(len(self.headers))
+    n_headers = range(self.headers_size)
     for i in n_headers:
       self.table._cells[(i, 0)]._text.set_color('w')
-      i += 1
 
   def generate_graph(self):
     fig, ax = plt.subplots()
@@ -210,20 +213,17 @@ class VerticalTable(Table):
 
   def generate_cell_colors(self):
     n_colors = range(self.rows_size)
+    n_headers = range(self.headers_size)
     colors = []
     for i in n_colors:
-      colors.append(["w", "w"])
-    n_headers = range(len(self.headers))
-    header_colors = []
-    for i in n_headers:
-      header_colors.append("k")
+      colors.append(["w" for x in n_headers])
+    header_colors = ["k" for x in n_headers]
     self.primary_color = [header_colors] + colors
 
   def color_cell_text(self):
-    n_headers = range(len(self.headers))
+    n_headers = range(self.headers_size)
     for i in n_headers:
       self.table._cells[(0, i)]._text.set_color('w')
-      i += 1
 
   def generate_graph(self):
     fig, ax = plt.subplots()
